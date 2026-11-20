@@ -798,3 +798,30 @@ select.modal-input{appearance:none;background:#f7f3ff url("data:image/svg+xml,%3
 .lyric-line.picked{background:#fff6fb;border-color:#f3c9e0}
 .lyric-line.picked .ly-ko{color:var(--pink)}
 .cs-back{font-size:12px;color:var(--sub)}
+
+/* ============================================================
+   PWA 独立模式自绘状态栏（时间 + 灵动岛 + 信号/WiFi/电池）
+   仅在 html.hxy-standalone 时显示：即"添加到主屏幕"全屏运行。
+   Safari 普通标签 / 微信 web-view 不加此类 → 隐藏，用系统真状态栏，避免重复。
+   高度取 env(safe-area-inset-top)，正好占住 .app 顶部 padding 预留的那一栏。
+   ============================================================ */
+.hxy-statusbar{display:none}
+html.hxy-standalone .hxy-statusbar{
+  display:flex;align-items:center;justify-content:space-between;
+  position:fixed;top:0;left:0;right:0;z-index:9999;
+  height:var(--safe-t,0px);min-height:20px;
+  padding:0 26px;pointer-events:none;color:#1a1a1c;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",sans-serif;
+}
+.hxysb-time{font-size:15px;font-weight:600;letter-spacing:.2px;min-width:62px;text-align:left;line-height:1}
+.hxysb-island{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:118px;height:min(34px,var(--safe-t,34px));border-radius:20px;background:#000}
+.hxysb-icons{display:flex;align-items:center;gap:6px;min-width:62px;justify-content:flex-end}
+.hxysb-icons svg{fill:#1a1a1c;display:block}
+.hxysb-icons .sb-signal{width:18px;height:12px}
+.hxysb-icons .sb-wifi{width:16px;height:12px}
+.sb-battery{position:relative;width:25px;height:13px;border:1.4px solid rgba(26,26,28,.55);
+  border-radius:4px;padding:1.6px;box-sizing:border-box}
+.sb-battery:after{content:"";position:absolute;right:-4px;top:3.6px;width:2px;height:5.8px;
+  background:rgba(26,26,28,.5);border-radius:0 2px 2px 0}
+.sb-battery i{display:block;height:100%;width:78%;background:#1a1a1c;border-radius:2px}

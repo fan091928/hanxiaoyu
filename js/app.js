@@ -473,9 +473,30 @@
     tab.classList.add('active');
     $('#page-' + tab.dataset.page).classList.add('active');
     $('.page-wrap').scrollTop = 0;
+    // 返回置顶键仅在词典页可用
+    var btt = document.getElementById('dictBackTop');
+    if (btt) btt.classList.remove('show');
     if (tab.dataset.page === 'checkin') { refreshStats(); renderCalendar(); }
     if (tab.dataset.page === 'me') refreshStats();
   }));
+
+  /* 词典页：滚动超过两页显示返回置顶键 */
+  (function initDictBackTop(){
+    var wrap = document.querySelector('.page-wrap');
+    var btt = document.getElementById('dictBackTop');
+    var dictPage = document.getElementById('page-dict');
+    if (!wrap || !btt || !dictPage) return;
+    wrap.addEventListener('scroll', function(){
+      if (!dictPage.classList.contains('active')) { btt.classList.remove('show'); return; }
+      var twoPages = (wrap.clientHeight || window.innerHeight) * 2;
+      if (wrap.scrollTop > twoPages) btt.classList.add('show');
+      else btt.classList.remove('show');
+    }, { passive: true });
+    btt.addEventListener('click', function(){
+      if (wrap.scrollTo) wrap.scrollTo({ top: 0, behavior: 'smooth' });
+      else wrap.scrollTop = 0;
+    });
+  })();
 
   /* ============================================================
      首页

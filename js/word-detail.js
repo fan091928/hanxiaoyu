@@ -68,7 +68,7 @@
     var wordsHtml=g.words.map(function(w,wi){
       var key=curGroup+'-'+wi, open=!!expanded[key];
       var ex=example(w)||{ko:'',cn:'',parts:[],tip:''};
-      var relateHtml=(w.relate||[]).map(function(r){return '<span class="rp-relate">'+esc(r)+'</span>';}).join('');
+      var relateHtml=relateHtmlOf(w);
       return `<div class="rp-word ${open?'open':''}" data-key="${key}">
         <div class="rp-word-head" data-toggle>
           <div class="rp-word-main">
@@ -102,8 +102,9 @@
       <div class="rp-words">${wordsHtml}</div>`;
 
     panel.querySelectorAll('.rp-rootchip').forEach(function(b){ b.onclick=function(){curGroup=+b.dataset.i;expanded={};renderRoot();}; });
-    panel.querySelectorAll('[data-toggle]').forEach(function(h){ h.onclick=function(e){ if(e.target.closest('.rp-say')||e.target.closest('[data-open-word]'))return; var card=h.closest('.rp-word'),k=card.dataset.key; expanded[k]=!expanded[k]; renderRoot(); }; });
+    panel.querySelectorAll('[data-toggle]').forEach(function(h){ h.onclick=function(e){ if(e.target.closest('.rp-say')||e.target.closest('[data-open-word]')||e.target.closest('.rp-relate'))return; var card=h.closest('.rp-word'),k=card.dataset.key; expanded[k]=!expanded[k]; renderRoot(); }; });
     bindPanelSay(panel);
+    bindRelateSay(panel);
     panel.querySelectorAll('[data-open-word]').forEach(function(el){ el.onclick=function(e){ e.stopPropagation(); try{openWord(JSON.parse(this.dataset.openWord));}catch(err){} }; });
   }
 
@@ -207,13 +208,14 @@
         ${ex.tip?'<div class="wd-tip">💡 '+esc(ex.tip)+'</div>':''}
       </div>
       <div class="wd-section wd-relate-sec">
-        <div class="wd-sec-title">🔗 关联词</div>
-        <div class="wd-relate">${relateOf(w)}</div>
+        <div class="wd-sec-title">🔗 关联词 <span class="wd-sec-hint">语义相关 · 点击朗读</span></div>
+        <div class="wd-relate">${relateHtmlOf(w)}</div>
       </div>`;
     detail.classList.add('show');
     detail.querySelector('#wdClose').onclick=closeWord;
     detail.querySelector('#wdPlay').onclick=function(e){ say(w.ko,e); };
     card.querySelectorAll('[data-say]').forEach(function(b){ b.onclick=function(e){ say(b.dataset.say,e); }; });
+    bindRelateSay(card);
   }
   function closeWord(){ if(detail) detail.classList.remove('show'); }
 
@@ -223,27 +225,34 @@
     if(w.cat==='place')return'名词·地点'; if(w.cat==='time')return'名词·时间';
     return'名词';
   }
-  function relateOf(w){
-    var rel=[], seen={};
-    var last=w.ko.slice(-1), first=w.ko.slice(0,1);
-    // 优先从词根精讲组里找同部件词
+  function relateList(w){
+    // 语义关联词典优先（按语义场/词根/场景，非字面硬凑）
+    var dict=(typeof SEMANTIC_RELATES!=='undefined')?SEMANTIC_RELATES:null;
+    if(dict && dict[w.ko] && dict[w.ko].length){
+      return dict[w.ko].map(function(x){ return {ko:x[0], cn:x[1]||''}; });
+    }
+    // 兜底：词根组人工 relate
+    var out=[], seen={};
     groups().forEach(function(g){ g.words.forEach(function(x){
-      if(x.ko!==w.ko && (x.ko.slice(-1)===last || x.cn===w.cn) && !seen[x.ko]){ seen[x.ko]=1; rel.push(x.ko+' '+x.cn); }
+      if(x.ko!==w.ko && x.cn===w.cn && !seen[x.ko]){ seen[x.ko]=1; out.push({ko:x.ko,cn:x.cn}); }
     }); });
-    // 再从完整词库按「同类别 + 同尾字/首字」补充
-    var all=(typeof TOPIK_WORDS!=='undefined')?TOPIK_WORDS:[];
-    all.forEach(function(x){
-      if(!x||!x.ko||x.ko===w.ko||seen[x.ko]) return;
-      var sameCat = w.cat && x.cat===w.cat;
-      var sameTail = x.ko.slice(-1)===last && last!=='다';
-      var sameHead = x.ko.slice(0,1)===first;
-      if((sameCat && (sameTail||sameHead||rel.length<3)) || sameTail){
-        seen[x.ko]=1; rel.push(x.ko+' '+(x.cn||''));
-      }
-    });
-    if(!rel.length){ rel=[w.ko+' '+w.cn]; }
-    return rel.slice(0,6).map(function(r){return '<span class="rp-relate">'+esc(r)+'</span>';}).join('');
+    return out.slice(0,4);
   }
+  function relateHtmlOf(w){
+    var list=relateList(w);
+    if(!list.length){ return '<span class="rp-relate-empty">暂无语义关联词</span>'; }
+    return list.map(function(x){
+      return '<button type="button" class="rp-relate" data-say="'+esc(x.ko)+'" title="点击朗读">'
+        +'<b>'+esc(x.ko)+'</b>'+(x.cn?'<small>'+esc(x.cn)+'</small>':'')
+        +'<span class="rp-relate-say">🔊</span></button>';
+    }).join('');
+  }
+  function bindRelateSay(root){
+    root.querySelectorAll('.rp-relate[data-say]').forEach(function(b){
+      b.onclick=function(e){ e.stopPropagation(); say(b.getAttribute('data-say'),e); };
+    });
+  }
+  function relateOf(w){ return relateHtmlOf(w); }
 
   global.WordDetail={ open:open, close:close, openWord:openWord, closeWord:closeWord };
 })(window);

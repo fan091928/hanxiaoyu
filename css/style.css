@@ -832,3 +832,29 @@ select.modal-input{appearance:none;background:#f7f3ff url("data:image/svg+xml,%3
 /* 韩剧场景标题 / 程度标签 */
 .drama-scene-title{font-size:15px}
 .deg-tag{font-size:11px}
+
+/* 词典页返回置顶键：滚动超过两页出现，固定在右下角，避开底部导航 */
+.back-to-top{
+  position:fixed;
+  right:calc(18px + env(safe-area-inset-right,0px));
+  bottom:calc(76px + env(safe-area-inset-bottom,0px));
+  z-index:28;
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  width:52px;height:52px;
+  border:1px solid #e2d6ff;
+  border-radius:50%;
+  background:linear-gradient(145deg,#ffffff,#f6f0ff);
+  box-shadow:0 6px 18px rgba(122,92,196,.28);
+  color:#7a5cc4;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  animation:bttIn .22s ease;
+}
+.back-to-top.show{display:flex}
+.back-to-top:active{transform:scale(.92)}
+.back-to-top .btt-arrow{font-size:22px;line-height:1;font-weight:700;margin-top:-2px}
+.back-to-top .btt-label{font-size:10px;margin-top:1px;letter-spacing:1px}
+@keyframes bttIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}

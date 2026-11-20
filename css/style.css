@@ -30,7 +30,8 @@ body{
   overflow:hidden;
 }
 /* 手机端： body 不再居中，让 app 完全占满可视区，杜绝底部露背景 */
-@media(max-width:499px){body{display:block}}
+/* 同色兜底：真机若因任何原因高度有偏差，露出的也是一致的淡紫而非白边 */
+@media(max-width:499px){body{display:block;background:#f7f4ff}html{background:#f7f4ff}}
 button,input,textarea{font-family:inherit;color:inherit;border:none;outline:none;background:none}
 button{cursor:pointer}
 ::-webkit-scrollbar{width:0;height:0}

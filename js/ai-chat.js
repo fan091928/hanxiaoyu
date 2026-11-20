@@ -38,6 +38,7 @@
     var has = !!getKey();
     keyView.innerHTML = `
       <div class="aic-key-card">
+        <button class="aic-back aic-key-back" id="aicKeyBack" aria-label="返回工作台">‹ 返回工作台</button>
         <div class="aic-key-icon">🔑</div>
         <div class="aic-key-title">先设置你的 AI 密钥</div>
         <p class="aic-key-desc">AI 陪练用<b>你自己的</b> DeepSeek 密钥，各用各的免费额度，不花发布者的钱，也不消耗你的额度给别人。</p>
@@ -54,6 +55,8 @@
         <div class="aic-key-note">🔒 密钥只保存在你自己的手机浏览器里，不会上传到任何服务器，随时可删除。</div>
       </div>`;
     panel.appendChild(keyView);
+    var kb = keyView.querySelector('#aicKeyBack');
+    if (kb) kb.onclick = close;
     keyView.querySelector('#aicKeySave').onclick = function(){
       var k = keyView.querySelector('#aicKeyInput').value.trim();
       if(!k){ keyView.querySelector('#aic-key-err') && (keyView.querySelector('#aic-key-err').textContent='请先粘贴密钥'); return; }
@@ -82,10 +85,11 @@
     panel.className = 'ai-chat-panel';
     panel.innerHTML = `
       <div class="aic-head">
-        <span class="aic-title">🤖 AI 韩语陪练</span>
+        <button class="aic-back" id="aicClose" aria-label="返回工作台">‹ 返回工作台</button>
+        <span class="aic-title">🤖 AI 陪练</span>
         <div class="aic-head-btns">
           <button class="aic-key-btn" id="aicKeyBtn" title="设置密钥">🔑</button>
-          <button class="aic-close" id="aicClose" aria-label="关闭">✕</button>
+          <button class="aic-close" id="aicClose2" aria-label="关闭">✕</button>
         </div>
       </div>
       <div class="aic-tipbar">用韩语或中文和 AI 聊天 · 它会纠错打分</div>
@@ -101,6 +105,7 @@
       <div class="aic-status" id="aicStatus"></div>`;
     document.body.appendChild(panel);
     panel.querySelector('#aicClose').onclick = close;
+    if (panel.querySelector('#aicClose2')) panel.querySelector('#aicClose2').onclick = close;
     panel.querySelector('#aicKeyBtn').onclick = openKeyView;
     panel.querySelector('#aicSend').onclick = send;
     panel.querySelector('#aicInput').addEventListener('keydown', e => { if (e.key === 'Enter') send(); });

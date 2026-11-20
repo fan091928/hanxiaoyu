@@ -538,6 +538,11 @@
   function buildExample(w){
     if(!w||!w.ko) return null;
     var ko=w.ko, cn=w.cn||'', cat=w.cat;
+    // 3-6级词优先取真实语境例句（项目真实语料原句 + 分类自然句型）
+    if(global.REAL_EXAMPLES && global.REAL_EXAMPLES[ko]){
+      var r=global.REAL_EXAMPLES[ko];
+      return {ko:r.ko,cn:r.cn,parts:r.parts,tip:r.tip,source:(r.src==='real'?'checked':'realctx')};
+    }
     if(HAND[ko]){
       var o=HAND[ko];
       return {ko:o.ko,cn:o.cn,parts:o.parts,tip:o.tip,source:'checked'};

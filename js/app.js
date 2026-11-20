@@ -176,7 +176,7 @@
     try {
       if (audioPlayer) { try { audioPlayer.pause(); } catch (e) {} audioPlayer = null; }
       const a = new Audio();
-      a.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261120k';
+      a.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261120l';
       a.preload = 'auto';
       a.playbackRate = rate || 1;
       audioPlayer = a;
@@ -204,6 +204,13 @@
     playRealAudio(text, r);                       // 否则在线音源
   }
   window.__speak = speak;
+
+  // Kpop 专用发音：强制走原来的在线音源（百度/有道），不使用本地 Edge 女声，
+  // 保留用户精心挑选的 Kpop 原声听感（歌曲原声片段 kc.clip 本就独立、从未改动）。
+  function speakKpop(text, rate = 1) {
+    if (!text) return;
+    playRealAudio(text, rate);
+  }
 
   // 按文本长度估算音频播放上限（毫秒）——仅作 onended 不触发时的兜底，
   // 绝不再用固定 8 秒把正在播放的长句掐断（那正是"跳句/时断时续"的根因）。
@@ -1191,7 +1198,7 @@
       <div class="drama-scene-title">💬 ${esc(g.theme)} · <span class="deg-tag deg-${g.level}">${{初:'初级',中:'中级',高:'高级'}[g.level]}</span></div>
       ${g.dialog.map((d, i) => `
         <div class="dialog-bubble ${i % 2 === 1 ? 'b' : ''}">
-          <div class="dialog-avatar"><img src="${dramaAvatar(g.drama, d.speaker)}?v=20261120k" alt="${esc(d.speaker)}"></div>
+          <div class="dialog-avatar"><img src="${dramaAvatar(g.drama, d.speaker)}?v=20261120l" alt="${esc(d.speaker)}"></div>
           <div class="dialog-content">
             <div class="dialog-ko" data-say="${esc(d.ko)}">${esc(d.ko)}</div>
             <div class="dialog-roman">${esc(d.roman)}</div>
@@ -2075,10 +2082,10 @@
         <button class="gp-btn" id="kpopNext">下一首 ›</button>
       </div>`;
 
-    // 歌词行：点击任意一句 -> 点读发音 +（若正在播放）跳到该句时间点；绝不锁死滚动
+    // 歌词行：点击任意一句 -> 点读发音（保留 Kpop 原在线音源）+（若正在播放）跳到该句时间点；绝不锁死滚动
     $$('#lyricScroll .lyric-line').forEach(el => el.onclick = () => {
       const say = el.dataset.say || '';
-      if (say) speak(say, 0.95);
+      if (say) speakKpop(say, 0.95);
       if (kpopFollow && kgAudio && !kgAudio.paused) {
         const t = parseFloat(el.dataset.t);
         if (!isNaN(t)) { try { kgAudio.currentTime = t; } catch (e) {} }
@@ -2096,7 +2103,7 @@
       toast(kpopFollow ? '已开启歌词自动滚动' : '已关闭自动跟随');
     };
 
-    $$('#kpopScroll [data-ksay]').forEach(el => el.onclick = e => { e.stopPropagation(); speak(el.dataset.ksay, 0.95); });
+    $$('#kpopScroll [data-ksay]').forEach(el => el.onclick = e => { e.stopPropagation(); speakKpop(el.dataset.ksay, 0.95); });
 
     // 上一首 / 下一首：基于当前筛选后的曲库
     const pool = kpopPool();

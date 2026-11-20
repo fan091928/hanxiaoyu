@@ -119,12 +119,15 @@
           </button>
           <p class="hero-hint" id="heroHint">点击按钮，开启今天的学习吧</p>
         </div>
-        <button class="ai-entry-card" id="aiChatEntry">
-          <span class="aie-icon">🤖</span>
-          <span class="aie-title">AI 韩语陪练</span>
-          <span class="aie-sub">聊天 · 纠错 · 打分</span>
-          <span class="aie-go">开始 ›</span>
-        </button>
+        <div class="checkin-hero ai-hero" id="aiChatEntry" role="button" tabindex="0">
+          <div class="hero-deco">✨</div>
+          <p class="hero-label">开口练韩语</p>
+          <button class="checkin-btn ai-round-btn" type="button">
+            <span class="cb-icon">🤖</span>
+            <span class="cb-text">AI 陪练</span>
+          </button>
+          <p class="hero-hint">和 AI 聊天 · 纠错打分</p>
+        </div>
       </div>
 
       <div class="stat-row">
@@ -455,8 +458,9 @@
 <script src="js/publisher.js"></script>
 <script src="js/store.js"></script>
 <script src="js/app.js"></script>
-<script src="js/ai-chat.js"></script>
+<script src="js/word-examples.js"></script>
 <script src="js/word-detail.js"></script>
+<script src="js/ai-chat.js"></script>
 <script>
   (function(){
     var aiBtn = document.getElementById('aiChatEntry');

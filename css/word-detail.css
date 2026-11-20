@@ -83,3 +83,39 @@
 .rp-demo-ko{font-size:18px;font-weight:800;color:#3d3752;line-height:1.6}
 .rp-demo-cn{font-size:13px;color:#8e88a3;margin:4px 0 12px}
 .rp-demo-parts{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:12px}
+
+/* 词条可点击提示 */
+.word-item .word-main{cursor:pointer}
+.word-item .word-main:active{opacity:.6}
+
+/* 造句课实战例句 */
+.rp-gex{background:#fff;border-radius:14px;padding:13px 14px;box-shadow:0 2px 8px rgba(138,107,216,.06);margin-bottom:9px}
+.rp-gex-tag{display:inline-block;font-size:11px;font-weight:700;color:#fff;background:#b9a0e8;border-radius:20px;padding:3px 10px;margin-bottom:7px}
+.rp-gex-ko{font-size:16px;font-weight:700;color:#3d3752;line-height:1.6}
+.rp-gex-cn{font-size:13px;color:#8e88a3;margin:4px 0 10px}
+.rp-gex .rp-parts{margin-bottom:0}
+.rp-more-detail{width:100%;margin-top:12px;padding:9px;border-radius:11px;background:#f4efff;color:#8a6bd8;font-size:13px;font-weight:700}
+
+/* ========== 单词详情卡片（独立弹层） ========== */
+.wd-overlay{position:fixed;inset:0;z-index:95;background:rgba(60,40,90,.45);display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)}
+.wd-overlay.show{display:flex}
+.wd-card{width:100%;max-width:430px;max-height:88%;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#faf7ff;border-radius:24px 24px 0 0;padding:16px 18px calc(env(safe-area-inset-bottom,0px) + 20px);box-shadow:0 -10px 40px rgba(90,60,150,.25)}
+.wd-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.wd-label{font-size:15px;font-weight:800;color:#9a90b5}
+.wd-close{width:32px;height:32px;border-radius:50%;background:#efe8ff;color:#8a6bd8;font-size:15px}
+.wd-hero{background:linear-gradient(135deg,#e3d4fb,#f5d0e6);border-radius:18px;padding:20px 18px;text-align:center;margin-bottom:16px}
+.wd-word-row{display:flex;align-items:center;justify-content:center;gap:12px}
+.wd-word{font-size:36px;font-weight:800;color:#4b4560;line-height:1.2}
+.wd-play{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.9);color:#8a6bd8;font-size:18px;display:grid;place-items:center;box-shadow:0 4px 14px rgba(110,70,180,.2)}
+.wd-roman{font-size:13px;color:#8a6bd8;margin-top:8px;letter-spacing:.5px}
+.wd-meaning{font-size:20px;font-weight:800;color:#5a3d7a;margin-top:6px}
+.wd-pos{display:inline-block;font-size:12px;color:#7a5cc4;background:rgba(255,255,255,.7);border-radius:20px;padding:4px 12px;margin-top:10px;font-weight:700}
+.wd-section{background:#fff;border-radius:16px;padding:15px;margin-bottom:12px;box-shadow:0 2px 10px rgba(138,107,216,.06)}
+.wd-sec-title{font-size:15px;font-weight:800;color:#7a5cc4;margin-bottom:10px}
+.wd-sec-hint{font-size:11px;color:#b9a0e8;font-weight:500;margin-left:6px}
+.wd-example{background:#faf6ff;border-radius:12px;padding:12px}
+.wd-ex-ko{font-size:17px;font-weight:700;color:#3d3752;line-height:1.6}
+.wd-ex-cn{font-size:13px;color:#8e88a3;margin-top:5px}
+.wd-tip{font-size:12px;color:#7a5cc4;background:#f4efff;border-radius:10px;padding:9px 11px;margin-top:10px;line-height:1.6}
+.wd-relate{display:flex;flex-wrap:wrap;gap:7px}
+.wd-speak-all{width:100%;padding:13px;border-radius:14px;background:#8a6bd8;color:#fff;font-weight:800;font-size:15px;box-shadow:0 4px 14px rgba(138,107,216,.25)}

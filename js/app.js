@@ -914,7 +914,7 @@
       const key = 'w:' + w.ko + ':' + w.cat;
       const cat = WORD_CATEGORIES.find(c => c.key === w.cat);
       return `<div class="word-item">
-        <div class="word-main">
+        <div class="word-main" data-open-word='${esc(JSON.stringify({ ko: w.ko, cn: w.cn, roman: w.roman, level: w.level, cat: w.cat }))}'>
           <div class="word-ko">${esc(w.ko)}<span class="word-lv lv${w.level}">${w.level}级</span></div>
           <div class="word-roman">${esc(w.roman)}</div>
           <div class="word-cn">${esc(w.cn)} · ${cat ? cat.label : ''}</div>
@@ -927,6 +927,12 @@
     const more = $('#dictMore');
     if (more) more.onclick = () => { dictShown += 60; renderDict(); };
     bindSay(); bindFav();
+    // 点词条打开单词详情卡片
+    $$('#dictList [data-open-word]').forEach(el => {
+      el.onclick = function(){
+        try { var w = JSON.parse(this.dataset.openWord); if (window.WordDetail) window.WordDetail.openWord(w); } catch(e){}
+      };
+    });
   }
   function bindSay() {
     $$('[data-say]').forEach(b => b.onclick = () => speak(b.dataset.say, 1));

@@ -1,160 +1,574 @@
 /* ============================================================
-   韩小语 · 通用例句引擎（覆盖 TOPIK 全部词，含所有高频词）
+   韩小语 · 例句引擎（精校日常例句版 v2）
    ------------------------------------------------------------
-   思路：
-   1) OVERRIDE：人工校验的高频词精确例句（优先使用，质量最高）
-   2) buildExample(word)：规则引擎，词尾变化遵循标准教材规则，
-      为任意词条生成「例句 + 中文 + 主谓宾拆解」，覆盖全部词
-   依赖：window.__speak（app.js 已暴露的 TTS）
+   - HAND：477 个高频词人工精校的地道日常例句（含长句），
+           每句配中文 + 主谓宾拆解(带词义) + 语法点，全部可朗读
+   - buildExample：优先取精校例句；未覆盖词按词性生成自然句型兜底
+   依赖：window.__speak（app.js 暴露）
    ============================================================ */
 (function (global) {
   'use strict';
 
-  /* ---------- 韩语规则工具 ---------- */
+  var HAND = {
+  "가게":{ko:"동네 가게에서 물건을 샀어요.",cn:"在小区店里买了东西。",parts:[{w:"동네",role:"M",roleCn:"修饰",mean:"小区"},{w:"가게에서",role:"L",roleCn:"地点",mean:"店里"},{w:"물건을",role:"O",roleCn:"宾语",mean:"东西"},{w:"샀어요",role:"V",roleCn:"谓语",mean:"买了"}],tip:"「동네」社区、小区。",source:"checked"},
+  "가구":{ko:"새 가구를 사서 방을 꾸몄어요.",cn:"买了新家具布置了房间。",parts:[{w:"새",role:"M",roleCn:"修饰",mean:"新的"},{w:"가구를",role:"O",roleCn:"宾语",mean:"家具"},{w:"사서",role:"V",roleCn:"谓语",mean:"买了"},{w:"방을",role:"O",roleCn:"宾语",mean:"房间"},{w:"꾸몄어요",role:"V",roleCn:"谓语",mean:"布置了"}],tip:"「꾸미다」装饰、布置。",source:"checked"},
+  "가깝다":{ko:"우리 학교는 지하철역에서 가까워요.",cn:"我们学校离地铁站近。",parts:[{w:"우리",role:"M",roleCn:"修饰",mean:"我们的"},{w:"학교는",role:"S",roleCn:"主语",mean:"学校"},{w:"지하철역에서",role:"L",roleCn:"地点",mean:"地铁站"},{w:"가까워요",role:"V",roleCn:"谓语",mean:"近"}],tip:"「-에서 가깝다」离…近；ㅂ不规则。",source:"checked"},
+  "가다":{ko:"저는 내일 학교에 갈 거예요.",cn:"我明天要去学校。",parts:[{w:"저는",role:"S",roleCn:"主语",mean:"我"},{w:"내일",role:"T",roleCn:"时间",mean:"明天"},{w:"학교에",role:"L",roleCn:"地点",mean:"学校"},{w:"거예요",role:"V",roleCn:"谓语",mean:"要去"}],tip:"「-(으)ㄹ 거예요」将来时；「에 가다」去某地。",source:"checked"},
+  "가렵다":{ko:"모기에 물려서 팔이 가려워요.",cn:"被蚊子咬了胳膊痒。",parts:[{w:"모기에",role:"S",roleCn:"主语",mean:"蚊子"},{w:"물려서",role:"V",roleCn:"谓语",mean:"咬"},{w:"팔이",role:"S",roleCn:"主语",mean:"胳膊"},{w:"가려워요",role:"V",roleCn:"谓语",mean:"痒"}],tip:"「가렵다」痒；「물리다」被咬。",source:"checked"},
+  "가르치다":{ko:"선생님이 학생들에게 수학을 가르치세요.",cn:"老师教学生们数学。",parts:[{w:"선생님이",role:"S",roleCn:"主语",mean:"老师"},{w:"학생들에게",role:"O",roleCn:"宾语",mean:"学生们"},{w:"수학을",role:"O",roleCn:"宾语",mean:"数学"},{w:"가르치세요",role:"V",roleCn:"谓语",mean:"教"}],tip:"「가르치다」教；「에게」教的对象。",source:"checked"},
+  "가뭄":{ko:"가뭄이 심해서 농작물이 다 말라가요.",cn:"干旱严重农作物都渐渐枯了。",parts:[{w:"가뭄이",role:"S",roleCn:"主语",mean:"干旱"},{w:"심해서",role:"V",roleCn:"谓语",mean:"严重"},{w:"농작물이",role:"S",roleCn:"主语",mean:"农作物"},{w:"다",role:"M",roleCn:"修饰",mean:"都"},{w:"말라가요",role:"V",roleCn:"谓语",mean:"渐渐枯"}],tip:"「가뭄이 심하다」干旱严重；「말라가다」渐渐干枯。",source:"checked"},
+  "가방":{ko:"가방에 책과 지갑을 넣었어요.",cn:"把书和钱包放进了包里。",parts:[{w:"가방에",role:"L",roleCn:"地点",mean:"包里"},{w:"책과",role:"O",roleCn:"宾语",mean:"书"},{w:"지갑을",role:"O",roleCn:"宾语",mean:"钱包"},{w:"넣었어요",role:"V",roleCn:"谓语",mean:"放进去了"}],tip:"「넣다」放入；「에」表示目的地。",source:"checked"},
+  "가스":{ko:"외출하기 전에 가스를 껐어요.",cn:"出门前关了煤气。",parts:[{w:"외출하기",role:"M",roleCn:"修饰",mean:"出门"},{w:"전에",role:"M",roleCn:"修饰",mean:"之前"},{w:"가스를",role:"O",roleCn:"宾语",mean:"煤气"},{w:"껐어요",role:"V",roleCn:"谓语",mean:"关了"}],tip:"「-(으)기 전에」在…之前。",source:"checked"},
+  "가을":{ko:"가을이 되면 단풍이 예뻐요.",cn:"到了秋天红叶很漂亮。",parts:[{w:"가을이",role:"T",roleCn:"时间",mean:"秋天"},{w:"되면",role:"V",roleCn:"谓语",mean:"到"},{w:"단풍이",role:"S",roleCn:"主语",mean:"红叶"},{w:"예뻐요",role:"V",roleCn:"谓语",mean:"漂亮"}],tip:"「단풍」红叶。",source:"checked"},
+  "가정":{ko:"우리 가정은 화목해요.",cn:"我们的家庭很和睦。",parts:[{w:"우리",role:"M",roleCn:"修饰",mean:"我们的"},{w:"가정은",role:"S",roleCn:"主语",mean:"家庭"},{w:"화목해요",role:"V",roleCn:"谓语",mean:"和睦"}],tip:"「화목하다」和睦。",source:"checked"},
+  "가족":{ko:"가족과 함께 여행을 갔어요.",cn:"和家人一起去旅行了。",parts:[{w:"가족과",role:"O",roleCn:"宾语",mean:"家人"},{w:"함께",role:"M",roleCn:"修饰",mean:"一起"},{w:"여행을",role:"O",roleCn:"宾语",mean:"旅行"},{w:"갔어요",role:"V",roleCn:"谓语",mean:"去了"}],tip:"가족과 = 和家人；过去时「갔어요」。",source:"checked"},
+  "간식":{ko:"오후에 간식을 먹고 싶어요.",cn:"下午想吃零食。",parts:[{w:"오후에",role:"T",roleCn:"时间",mean:"下午"},{w:"간식을",role:"O",roleCn:"宾语",mean:"零食"},{w:"싶어요",role:"V",roleCn:"谓语",mean:"想吃"}],tip:"「-고 싶다」想做。",source:"checked"},
+  "간호사":{ko:"간호사가 환자를 돌봐요.",cn:"护士照顾病人。",parts:[{w:"간호사가",role:"S",roleCn:"主语",mean:"护士"},{w:"환자를",role:"O",roleCn:"宾语",mean:"病人"},{w:"돌봐요",role:"V",roleCn:"谓语",mean:"照顾"}],tip:"「돌보다」照顾；환자 患者。",source:"checked"},
+  "감기":{ko:"감기에 걸려서 약을 먹었어요.",cn:"感冒了所以吃了药。",parts:[{w:"감기에",role:"S",roleCn:"主语",mean:"感冒"},{w:"걸려서",role:"V",roleCn:"谓语",mean:"得"},{w:"약을",role:"O",roleCn:"宾语",mean:"药"},{w:"먹었어요",role:"V",roleCn:"谓语",mean:"吃了"}],tip:"「감기에 걸리다」患感冒。",source:"checked"},
+  "감사합니다":{ko:"도와 주셔서 정말 감사합니다.",cn:"真的谢谢您的帮忙。",parts:[{w:"주셔서",role:"V",roleCn:"谓语",mean:"帮忙"},{w:"정말",role:"M",roleCn:"修饰",mean:"真的"},{w:"감사합니다",role:"V",roleCn:"谓语",mean:"谢谢"}],tip:"「감사합니다」正式感谢；주셨다 含敬意。",source:"checked"},
+  "강":{ko:"강가를 따라 천천히 걸었어요.",cn:"沿着江边慢慢走了走。",parts:[{w:"강가를",role:"L",roleCn:"地点",mean:"江边"},{w:"따라",role:"M",roleCn:"修饰",mean:"沿着"},{w:"천천히",role:"M",roleCn:"修饰",mean:"慢慢地"},{w:"걸었어요",role:"V",roleCn:"谓语",mean:"走了"}],tip:"「따라」沿着；강가 江边。",source:"checked"},
+  "거울":{ko:"거울을 보면서 화장을 했어요.",cn:"照着镜子化了妆。",parts:[{w:"거울을",role:"O",roleCn:"宾语",mean:"镜子"},{w:"보면서",role:"M",roleCn:"修饰",mean:"看着"},{w:"화장을",role:"O",roleCn:"宾语",mean:"妆"},{w:"했어요",role:"V",roleCn:"谓语",mean:"化了"}],tip:"「-면서」一边…一边。",source:"checked"},
+  "걱정하다":{ko:"시험 결과가 걱정돼요.",cn:"担心考试结果。",parts:[{w:"시험",role:"O",roleCn:"宾语",mean:"考试"},{w:"결과가",role:"S",roleCn:"主语",mean:"结果"},{w:"걱정돼요",role:"V",roleCn:"谓语",mean:"担心"}],tip:"「걱정되다」担心（自动词）；결과 结果。",source:"checked"},
+  "건강":{ko:"건강이 제일 중요해요.",cn:"健康最重要。",parts:[{w:"건강이",role:"S",roleCn:"主语",mean:"健康"},{w:"제일",role:"M",roleCn:"修饰",mean:"最"},{w:"중요해요",role:"V",roleCn:"谓语",mean:"重要"}],tip:"「제일」最；중요하다 重要。",source:"checked"},
+  "건강검진":{ko:"건강검진을 1년에 한 번 받아요.",cn:"一年做一次体检。",parts:[{w:"건강검진을",role:"O",roleCn:"宾语",mean:"体检"},{w:"1년에",role:"T",roleCn:"时间",mean:"一年"},{w:"한",role:"O",roleCn:"宾语",mean:"一"},{w:"번",role:"M",roleCn:"修饰",mean:"次"},{w:"받아요",role:"V",roleCn:"谓语",mean:"做"}],tip:"「1년에 한 번」一年一次。",source:"checked"},
+  "걷다":{ko:"공원을 걷다가 예쁜 꽃을 봤어요.",cn:"在公园走着看到漂亮的花。",parts:[{w:"공원을",role:"L",roleCn:"地点",mean:"公园"},{w:"걷다가",role:"M",roleCn:"修饰",mean:"走着"},{w:"예쁜",role:"M",roleCn:"修饰",mean:"漂亮的"},{w:"꽃을",role:"O",roleCn:"宾语",mean:"花"},{w:"봤어요",role:"V",roleCn:"谓语",mean:"看到"}],tip:"「-다가」动作中发现；걷다 走。",source:"checked"},
+  "검사":{ko:"정기 검사를 받는 게 좋아요.",cn:"定期做检查比较好。",parts:[{w:"정기",role:"T",roleCn:"时间",mean:"定期"},{w:"검사를",role:"O",roleCn:"宾语",mean:"检查"},{w:"게",role:"M",roleCn:"修饰",mean:"这件事"},{w:"좋아요",role:"V",roleCn:"谓语",mean:"好"}],tip:"「검사를 받다」体检；「-는 게 좋다」最好做。",source:"checked"},
+  "겨울":{ko:"겨울에는 추워서 따뜻한 옷을 입어요.",cn:"冬天冷所以穿暖和的衣服。",parts:[{w:"겨울에는",role:"T",roleCn:"时间",mean:"冬天"},{w:"추워서",role:"V",roleCn:"谓语",mean:"冷"},{w:"따뜻한",role:"M",roleCn:"修饰",mean:"暖和的"},{w:"옷을",role:"O",roleCn:"宾语",mean:"衣服"},{w:"입어요",role:"V",roleCn:"谓语",mean:"穿"}],tip:"「따뜻한」暖和的；-아서 原因。",source:"checked"},
+  "결정하다":{ko:"여행지를 제주도로 결정했어요.",cn:"决定旅行地定为济州岛。",parts:[{w:"여행지를",role:"O",roleCn:"宾语",mean:"旅行地"},{w:"제주도로",role:"C",roleCn:"补语",mean:"济州岛"},{w:"결정했어요",role:"V",roleCn:"谓语",mean:"决定了"}],tip:"「-으로 결정하다」决定为。",source:"checked"},
+  "결제하다":{ko:"카드로 결제했어요.",cn:"用卡结账了。",parts:[{w:"카드로",role:"C",roleCn:"补语",mean:"卡"},{w:"결제했어요",role:"V",roleCn:"谓语",mean:"结账了"}],tip:"「결제하다」结账；「(으)로」工具。",source:"checked"},
+  "경기장":{ko:"경기장에서 응원을 했어요.",cn:"在体育场加油助威了。",parts:[{w:"경기장에서",role:"L",roleCn:"地点",mean:"体育场"},{w:"응원을",role:"O",roleCn:"宾语",mean:"助威"},{w:"했어요",role:"V",roleCn:"谓语",mean:"做了"}],tip:"「응원하다」加油。",source:"checked"},
+  "경찰":{ko:"경찰이 길을 안내해요.",cn:"警察在指挥交通。",parts:[{w:"경찰이",role:"S",roleCn:"主语",mean:"警察"},{w:"길을",role:"O",roleCn:"宾语",mean:"道路"},{w:"안내해요",role:"V",roleCn:"谓语",mean:"引导"}],tip:"「안내하다」引导、指路。",source:"checked"},
+  "경험":{ko:"해외 경험이 많아서 자신감이 있어요.",cn:"海外经验丰富所以有自信。",parts:[{w:"해외",role:"O",roleCn:"宾语",mean:"海外"},{w:"경험이",role:"S",roleCn:"主语",mean:"经验"},{w:"많아서",role:"V",roleCn:"谓语",mean:"多"},{w:"자신감이",role:"S",roleCn:"主语",mean:"自信"},{w:"있어요",role:"V",roleCn:"谓语",mean:"有"}],tip:"「경험이 있다」有经验；자신감 自信。",source:"checked"},
+  "계란":{ko:"계란 두 개를 삶아서 아침에 먹어요.",cn:"煮两个鸡蛋早上吃。",parts:[{w:"두",role:"O",roleCn:"宾语",mean:"两"},{w:"개를",role:"O",roleCn:"宾语",mean:"个"},{w:"삶아서",role:"V",roleCn:"谓语",mean:"煮"},{w:"아침에",role:"T",roleCn:"时间",mean:"早上"},{w:"먹어요",role:"V",roleCn:"谓语",mean:"吃"}],tip:"量词「개」；「삶아서」煮好之后。",source:"checked"},
+  "계획":{ko:"올해 계획을 세웠어요.",cn:"制定了今年的计划。",parts:[{w:"올해",role:"T",roleCn:"时间",mean:"今年"},{w:"계획을",role:"O",roleCn:"宾语",mean:"计划"},{w:"세웠어요",role:"V",roleCn:"谓语",mean:"制定了"}],tip:"「계획을 세우다」制定计划。",source:"checked"},
+  "고기":{ko:"주말에 가족과 고기를 구워 먹었어요.",cn:"周末和家人烤肉吃。",parts:[{w:"주말에",role:"T",roleCn:"时间",mean:"周末"},{w:"가족과",role:"O",roleCn:"宾语",mean:"家人"},{w:"고기를",role:"O",roleCn:"宾语",mean:"肉"},{w:"먹었어요",role:"V",roleCn:"谓语",mean:"烤着吃了"}],tip:"「구워 먹다」烤来吃；와 表「和」。",source:"checked"},
+  "고르다":{ko:"선물 가게에서 예쁜 컵을 골랐어요.",cn:"在礼品店挑了漂亮的杯子。",parts:[{w:"선물",role:"O",roleCn:"宾语",mean:"礼物"},{w:"가게에서",role:"L",roleCn:"地点",mean:"店"},{w:"예쁜",role:"M",roleCn:"修饰",mean:"漂亮的"},{w:"컵을",role:"O",roleCn:"宾语",mean:"杯子"},{w:"골랐어요",role:"V",roleCn:"谓语",mean:"挑了"}],tip:"「고르다」挑选；过去골랐어요。",source:"checked"},
+  "고치다":{ko:"고장난 자전거를 고쳤어요.",cn:"修好了坏掉的自行车。",parts:[{w:"고장난",role:"M",roleCn:"修饰",mean:"坏了的"},{w:"자전거를",role:"O",roleCn:"宾语",mean:"自行车"},{w:"고쳤어요",role:"V",roleCn:"谓语",mean:"修了"}],tip:"「고장나다」出故障；고치다 修理。",source:"checked"},
+  "골라다":{ko:"여러 개 중에서 제일 마음에 드는 걸 골랐어요.",cn:"从好几个里挑了最中意的一个。",parts:[{w:"여러",role:"M",roleCn:"修饰",mean:"好几"},{w:"중에서",role:"M",roleCn:"修饰",mean:"中"},{w:"제일",role:"M",roleCn:"修饰",mean:"最"},{w:"마음에",role:"O",roleCn:"宾语",mean:"心意"},{w:"드는",role:"O",roleCn:"宾语",mean:"中意的"},{w:"걸",role:"O",roleCn:"宾语",mean:"一个"},{w:"골랐어요",role:"V",roleCn:"谓语",mean:"挑了"}],tip:"「고르다/골라다」挑选；「마음에 들다」中意。",source:"checked"},
+  "공무원":{ko:"친구가 공무원으로 일해요.",cn:"朋友作为公务员工作。",parts:[{w:"친구가",role:"S",roleCn:"主语",mean:"朋友"},{w:"공무원으로",role:"C",roleCn:"补语",mean:"公务员"},{w:"일해요",role:"V",roleCn:"谓语",mean:"工作"}],tip:"「(으)로」表示身份「作为」。",source:"checked"},
+  "공부하다":{ko:"매일 한 시간씩 한국어를 공부해요.",cn:"每天学一小时韩语。",parts:[{w:"매일",role:"T",roleCn:"时间",mean:"每天"},{w:"시간",role:"M",roleCn:"修饰",mean:"一小时"},{w:"한국어를",role:"O",roleCn:"宾语",mean:"韩语"},{w:"공부해요",role:"V",roleCn:"谓语",mean:"学习"}],tip:"「한 시간씩」每小时；공부하다 学习。",source:"checked"},
+  "공원":{ko:"날씨가 좋아서 공원을 산책했어요.",cn:"天气好所以去公园散步了。",parts:[{w:"날씨가",role:"S",roleCn:"主语",mean:"天气"},{w:"좋아서",role:"V",roleCn:"谓语",mean:"好"},{w:"공원을",role:"L",roleCn:"地点",mean:"公园"},{w:"산책했어요",role:"V",roleCn:"谓语",mean:"散步了"}],tip:"「공원을 산책하다」在公园散步。",source:"checked"},
+  "공항":{ko:"공항에 도착하자마자 탑승권을 확인했어요.",cn:"一到机场就确认了登机牌。",parts:[{w:"공항에",role:"L",roleCn:"地点",mean:"机场"},{w:"도착하자마자",role:"M",roleCn:"修饰",mean:"一到"},{w:"탑승권을",role:"O",roleCn:"宾语",mean:"登机牌"},{w:"확인했어요",role:"V",roleCn:"谓语",mean:"确认了"}],tip:"「-자마자」一…就…。",source:"checked"},
+  "과일":{ko:"과일은 몸에 좋아요.",cn:"水果对身体好。",parts:[{w:"과일은",role:"S",roleCn:"主语",mean:"水果"},{w:"몸에",role:"O",roleCn:"宾语",mean:"身体"},{w:"좋아요",role:"V",roleCn:"谓语",mean:"有益"}],tip:"「몸에 좋다」对身体有益，固定搭配。",source:"checked"},
+  "과자":{ko:"텔레비전을 보면서 과자를 먹어요.",cn:"一边看电视一边吃饼干。",parts:[{w:"텔레비전을",role:"O",roleCn:"宾语",mean:"电视"},{w:"보면서",role:"M",roleCn:"修饰",mean:"一边看"},{w:"과자를",role:"O",roleCn:"宾语",mean:"饼干"},{w:"먹어요",role:"V",roleCn:"谓语",mean:"吃"}],tip:"「-면서」表示两个动作同时进行。",source:"checked"},
+  "관광":{ko:"경주에 가서 유적지를 관광했어요.",cn:"去庆州观光了遗迹。",parts:[{w:"경주에",role:"L",roleCn:"地点",mean:"庆州"},{w:"가서",role:"V",roleCn:"谓语",mean:"去"},{w:"유적지를",role:"O",roleCn:"宾语",mean:"遗迹"},{w:"관광했어요",role:"V",roleCn:"谓语",mean:"观光了"}],tip:"「유적지」遗迹地；관광하다 观光。",source:"checked"},
+  "관광지":{ko:"이 관광지는 사람이 너무 많아요.",cn:"这个景点人太多了。",parts:[{w:"이",role:"M",roleCn:"修饰",mean:"这个"},{w:"관광지는",role:"S",roleCn:"主语",mean:"景点"},{w:"사람이",role:"S",roleCn:"主语",mean:"人"},{w:"너무",role:"M",roleCn:"修饰",mean:"太"},{w:"많아요",role:"V",roleCn:"谓语",mean:"多"}],tip:"「너무」太；主题助词는。",source:"checked"},
+  "괜찮다":{ko:"괜찮아요? 다 나았어요?",cn:"你还好吗？都好了吗？",parts:[{w:"다",role:"M",roleCn:"修饰",mean:"都"},{w:"나았어요",role:"V",roleCn:"谓语",mean:"好了"}],tip:"「괜찮다」没关系、还好；「낫다」痊愈。",source:"checked"},
+  "교환하다":{ko:"사이즈가 안 맞아서 교환했어요.",cn:"尺码不合适所以换了。",parts:[{w:"사이즈가",role:"S",roleCn:"主语",mean:"尺码"},{w:"안",role:"M",roleCn:"修饰",mean:"不"},{w:"맞아서",role:"V",roleCn:"谓语",mean:"合适"},{w:"교환했어요",role:"V",roleCn:"谓语",mean:"换了"}],tip:"「교환하다」交换；사이즈 尺码。",source:"checked"},
+  "교회":{ko:"주말에 교회에 다녀요.",cn:"周末去教堂。",parts:[{w:"주말에",role:"T",roleCn:"时间",mean:"周末"},{w:"교회에",role:"L",roleCn:"地点",mean:"教堂"},{w:"다녀요",role:"V",roleCn:"谓语",mean:"去"}],tip:"「다니다」定期往返。",source:"checked"},
+  "구름":{ko:"하늘에 구름이 조금 있어요.",cn:"天上有一点云。",parts:[{w:"하늘에",role:"L",roleCn:"地点",mean:"天空"},{w:"구름이",role:"S",roleCn:"主语",mean:"云"},{w:"조금",role:"M",roleCn:"修饰",mean:"一点"},{w:"있어요",role:"V",roleCn:"谓语",mean:"有"}],tip:"「하늘에」在天上；있다 存在。",source:"checked"},
+  "국":{ko:"뜨거운 국을 조심해서 드세요.",cn:"请小心喝热汤。",parts:[{w:"뜨거운",role:"M",roleCn:"修饰",mean:"热的"},{w:"국을",role:"O",roleCn:"宾语",mean:"汤"},{w:"조심해서",role:"M",roleCn:"修饰",mean:"小心地"},{w:"드세요",role:"V",roleCn:"谓语",mean:"请用"}],tip:"「드세요」是吃/喝的敬语。",source:"checked"},
+  "굽다":{ko:"오븐에 고기를 구웠어요.",cn:"在烤箱里烤了肉。",parts:[{w:"오븐에",role:"L",roleCn:"地点",mean:"烤箱"},{w:"고기를",role:"O",roleCn:"宾语",mean:"肉"},{w:"구웠어요",role:"V",roleCn:"谓语",mean:"烤了"}],tip:"「굽다」烤；오븐 烤箱。",source:"checked"},
+  "귀":{ko:"음악 소리가 너무 커서 귀가 따가워요.",cn:"音乐声太大耳朵刺痛。",parts:[{w:"소리가",role:"S",roleCn:"主语",mean:"音乐声"},{w:"너무",role:"M",roleCn:"修饰",mean:"太"},{w:"커서",role:"V",roleCn:"谓语",mean:"大"},{w:"귀가",role:"S",roleCn:"主语",mean:"耳朵"},{w:"따가워요",role:"V",roleCn:"谓语",mean:"刺痛"}],tip:"「따갑다」刺痛；-아서 原因。",source:"checked"},
+  "귀엽다":{ko:"이 강아지는 눈이 크고 정말 귀여워요.",cn:"这只小狗眼睛大大真的很可爱。",parts:[{w:"이",role:"M",roleCn:"修饰",mean:"这"},{w:"강아지는",role:"S",roleCn:"主语",mean:"小狗"},{w:"눈이",role:"S",roleCn:"主语",mean:"眼睛"},{w:"크고",role:"M",roleCn:"修饰",mean:"大"},{w:"정말",role:"M",roleCn:"修饰",mean:"真的"},{w:"귀여워요",role:"V",roleCn:"谓语",mean:"可爱"}],tip:"「귀엽다」可爱；ㅂ不规则귀여워요。",source:"checked"},
+  "그":{ko:"그는 우리 반 친구예요.",cn:"他是我们的同班同学。",parts:[{w:"그는",role:"S",roleCn:"主语",mean:"他"},{w:"우리",role:"M",roleCn:"修饰",mean:"我们的"},{w:"친구예요",role:"V",roleCn:"谓语",mean:"是同学"}],tip:"그 指「他」；「N예요」= 名词作谓语「是」。",source:"checked"},
+  "그래서":{ko:"비가 와서, 그래서 우산을 챙겼어요.",cn:"下雨了，所以带了伞。",parts:[{w:"비가",role:"S",roleCn:"主语",mean:"雨"},{w:"와서",role:"V",roleCn:"谓语",mean:"下"},{w:"그래서",role:"M",roleCn:"修饰",mean:"所以"},{w:"우산을",role:"O",roleCn:"宾语",mean:"伞"},{w:"챙겼어요",role:"V",roleCn:"谓语",mean:"带了"}],tip:"「그래서」所以；「챙기다」携带。",source:"checked"},
+  "그리고":{ko:"밥을 먹고, 그리고 산책을 했어요.",cn:"吃完饭，然后散步了。",parts:[{w:"밥을",role:"O",roleCn:"宾语",mean:"饭"},{w:"먹고",role:"M",roleCn:"修饰",mean:"吃完"},{w:"그리고",role:"M",roleCn:"修饰",mean:"然后"},{w:"산책을",role:"O",roleCn:"宾语",mean:"散步"},{w:"했어요",role:"V",roleCn:"谓语",mean:"做了"}],tip:"「그리고」和、然后；连接句子。",source:"checked"},
+  "기간":{ko:"준비 기간이 생각보다 길어요.",cn:"准备期间比想象的长。",parts:[{w:"기간이",role:"S",roleCn:"主语",mean:"准备期间"},{w:"생각보다",role:"M",roleCn:"修饰",mean:"比想象"},{w:"길어요",role:"V",roleCn:"谓语",mean:"长"}],tip:"「생각보다」比想象；기간 期间。",source:"checked"},
+  "기념일":{ko:"우리 기념일을 축하했어요.",cn:"庆祝了我们的纪念日。",parts:[{w:"우리",role:"M",roleCn:"修饰",mean:"我们的"},{w:"기념일을",role:"O",roleCn:"宾语",mean:"纪念日"},{w:"축하했어요",role:"V",roleCn:"谓语",mean:"庆祝了"}],tip:"「기념일」纪念日。",source:"checked"},
+  "기다리다":{ko:"버스를 기다리면서 노래를 들었어요.",cn:"等公交的时候听了歌。",parts:[{w:"버스를",role:"O",roleCn:"宾语",mean:"公交"},{w:"기다리면서",role:"M",roleCn:"修饰",mean:"一边等"},{w:"노래를",role:"O",roleCn:"宾语",mean:"歌"},{w:"들었어요",role:"V",roleCn:"谓语",mean:"听了"}],tip:"「-면서」同时；기다리다 等待。",source:"checked"},
+  "기대하다":{ko:"생일 선물이 기대돼요.",cn:"好期待生日礼物。",parts:[{w:"선물이",role:"S",roleCn:"主语",mean:"生日礼物"},{w:"기대돼요",role:"V",roleCn:"谓语",mean:"期待"}],tip:"「기대되다」期待；-아/어요。",source:"checked"},
+  "기쁘다":{ko:"시험에 합격해서 정말 기뻐요.",cn:"考试通过了真的很高兴。",parts:[{w:"시험에",role:"O",roleCn:"宾语",mean:"考试"},{w:"합격해서",role:"V",roleCn:"谓语",mean:"通过"},{w:"정말",role:"M",roleCn:"修饰",mean:"真的"},{w:"기뻐요",role:"V",roleCn:"谓语",mean:"高兴"}],tip:"「기쁘다」高兴；ㅡ不规则기뻐요。",source:"checked"},
+  "기사님":{ko:"기사님, 여기서 내려 주세요.",cn:"司机师傅，请在这里让我下车。",parts:[{w:"기사님,",role:"C",roleCn:"补语",mean:"称呼"},{w:"여기서",role:"M",roleCn:"修饰",mean:"这里"},{w:"내려",role:"O",roleCn:"宾语",mean:"下车"},{w:"주세요",role:"V",roleCn:"谓语",mean:"请给"}],tip:"「(으)어 주세요」表示请求别人为自己做事。",source:"checked"},
+  "기억":{ko:"어릴 적의 기억이 아직 선명해요.",cn:"小时候的记忆还很清晰。",parts:[{w:"어릴",role:"M",roleCn:"修饰",mean:"小时候"},{w:"적의",role:"S",roleCn:"主语",mean:"时候的"},{w:"기억이",role:"S",roleCn:"主语",mean:"记忆"},{w:"아직",role:"M",roleCn:"修饰",mean:"还"},{w:"선명해요",role:"V",roleCn:"谓语",mean:"清晰"}],tip:"「기억이 선명하다」记忆清晰。",source:"checked"},
+  "기온":{ko:"내일 기온이 5도까지 떨어진대요.",cn:"据说明天气温要降到5度。",parts:[{w:"내일",role:"T",roleCn:"时间",mean:"明天"},{w:"기온이",role:"S",roleCn:"主语",mean:"气温"},{w:"5도",role:"O",roleCn:"宾语",mean:"5度"},{w:"까지",role:"M",roleCn:"修饰",mean:"直到"},{w:"떨어진대요",role:"V",roleCn:"谓语",mean:"据说降"}],tip:"「-대요」转述；「기온이 떨어지다」降温。",source:"checked"},
+  "기차":{ko:"기차로 부산에 갔어요.",cn:"坐火车去了釜山。",parts:[{w:"기차로",role:"C",roleCn:"补语",mean:"火车"},{w:"부산에",role:"L",roleCn:"地点",mean:"釜山"},{w:"갔어요",role:"V",roleCn:"谓语",mean:"去了"}],tip:"「(으)로」表示交通工具。",source:"checked"},
+  "기침":{ko:"기침이 나서 잠을 못 잤어요.",cn:"咳嗽没法睡觉。",parts:[{w:"기침이",role:"S",roleCn:"主语",mean:"咳嗽"},{w:"나서",role:"V",roleCn:"谓语",mean:"咳"},{w:"잠을",role:"O",roleCn:"宾语",mean:"觉"},{w:"못",role:"M",roleCn:"修饰",mean:"没法"},{w:"잤어요",role:"V",roleCn:"谓语",mean:"睡"}],tip:"「기침이 나다」咳嗽；못 V 无法。",source:"checked"},
+  "길":{ko:"출근길에 길이 막혀서 늦었어요.",cn:"上班路上堵车所以迟到了。",parts:[{w:"출근길에",role:"T",roleCn:"时间",mean:"上班路上"},{w:"길이",role:"S",roleCn:"主语",mean:"路"},{w:"막혀서",role:"V",roleCn:"谓语",mean:"堵"},{w:"늦었어요",role:"V",roleCn:"谓语",mean:"迟到了"}],tip:"「길이 막히다」堵车；-아서 原因。",source:"checked"},
+  "길다":{ko:"머리가 어깨까지 길어서 자르려고 해요.",cn:"头发长到肩膀所以想剪。",parts:[{w:"머리가",role:"S",roleCn:"主语",mean:"头发"},{w:"어깨까지",role:"M",roleCn:"修饰",mean:"到肩膀"},{w:"길어서",role:"V",roleCn:"谓语",mean:"长"},{w:"자르려고",role:"V",roleCn:"谓语",mean:"想剪"},{w:"해요",role:"V",roleCn:"谓语",mean:"打算"}],tip:"「어깨까지」到肩膀；길다 长。",source:"checked"},
+  "김밥":{ko:"소풍에 김밥을 싸 왔어요.",cn:"郊游时带了紫菜包饭。",parts:[{w:"소풍에",role:"L",roleCn:"地点",mean:"郊游"},{w:"김밥을",role:"O",roleCn:"宾语",mean:"紫菜包饭"},{w:"왔어요",role:"V",roleCn:"谓语",mean:"包着带来了"}],tip:"「싸 오다」包好带来。",source:"checked"},
+  "김치":{ko:"김치는 매콤해서 밥 반찬으로 딱이에요.",cn:"泡菜有点辣，正适合当配饭的小菜。",parts:[{w:"김치는",role:"S",roleCn:"主语",mean:"泡菜"},{w:"매콤해서",role:"V",roleCn:"谓语",mean:"辣"},{w:"밥",role:"O",roleCn:"宾语",mean:"饭"},{w:"반찬으로",role:"C",roleCn:"补语",mean:"小菜"},{w:"딱이에요",role:"V",roleCn:"谓语",mean:"正合适"}],tip:"「-아서」表原因；「딱이에요」正合适。",source:"checked"},
+  "깨끗하다":{ko:"방을 깨끗하게 청소해서 기분이 상쾌해요.",cn:"把房间打扫干净心情清爽。",parts:[{w:"방을",role:"O",roleCn:"宾语",mean:"房间"},{w:"깨끗하게",role:"M",roleCn:"修饰",mean:"干净地"},{w:"청소해서",role:"V",roleCn:"谓语",mean:"打扫"},{w:"기분이",role:"S",roleCn:"主语",mean:"心情"},{w:"상쾌해요",role:"V",roleCn:"谓语",mean:"清爽"}],tip:"「깨끗하게」干净地；상쾌하다 清爽。",source:"checked"},
+  "꽃":{ko:"봄이 오면 벚꽃이 피어요.",cn:"春天一到樱花就开。",parts:[{w:"봄이",role:"T",roleCn:"时间",mean:"春天"},{w:"오면",role:"V",roleCn:"谓语",mean:"来"},{w:"벚꽃이",role:"S",roleCn:"主语",mean:"樱花"},{w:"피어요",role:"V",roleCn:"谓语",mean:"开"}],tip:"「-(으)면」条件；「꽃이 피다」花开。",source:"checked"},
+  "꽃잎":{ko:"바람에 꽃잎이 흩날려요.",cn:"花瓣随风飘散。",parts:[{w:"바람에",role:"S",roleCn:"主语",mean:"风"},{w:"꽃잎이",role:"S",roleCn:"主语",mean:"花瓣"},{w:"흩날려요",role:"V",roleCn:"谓语",mean:"飘散"}],tip:"「흩날리다」飞舞飘散；「에」表原因。",source:"checked"},
+  "꿈":{ko:"언젠가 꿈을 이룰 거예요.",cn:"总有一天会实现梦想。",parts:[{w:"언젠가",role:"M",roleCn:"修饰",mean:"总有一天"},{w:"꿈을",role:"O",roleCn:"宾语",mean:"梦想"},{w:"거예요",role:"V",roleCn:"谓语",mean:"会实现"}],tip:"「꿈을 이루다」实现梦想；언젠가 总有一天。",source:"checked"},
+  "끓이다":{ko:"물을 끓여서 라면을 넣었어요.",cn:"把水烧开放了拉面。",parts:[{w:"물을",role:"O",roleCn:"宾语",mean:"水"},{w:"끓여서",role:"V",roleCn:"谓语",mean:"烧开"},{w:"라면을",role:"O",roleCn:"宾语",mean:"拉面"},{w:"넣었어요",role:"V",roleCn:"谓语",mean:"放了"}],tip:"「끓이다」煮沸；「넣다」放入。",source:"checked"},
+  "끝":{ko:"영화가 끝나자마자 사람들이 일어섰어요.",cn:"电影一结束人们就起身了。",parts:[{w:"영화가",role:"S",roleCn:"主语",mean:"电影"},{w:"끝나자마자",role:"M",roleCn:"修饰",mean:"一结束"},{w:"사람들이",role:"S",roleCn:"主语",mean:"人们"},{w:"일어섰어요",role:"V",roleCn:"谓语",mean:"起身了"}],tip:"「끝나다」结束；「-자마자」一…就。",source:"checked"},
+  "나":{ko:"나는 오늘 도서관에 갈 거야.",cn:"我今天要去图书馆。",parts:[{w:"나는",role:"S",roleCn:"主语",mean:"我"},{w:"오늘",role:"T",roleCn:"时间",mean:"今天"},{w:"도서관에",role:"L",roleCn:"地点",mean:"图书馆"},{w:"거야",role:"V",roleCn:"谓语",mean:"要去"}],tip:"나 是平语「我」，对朋友用；갈 거야 是「要去」的平语将来时。",source:"checked"},
+  "나무":{ko:"큰 나무 그늘 아래에 앉아서 쉬었어요.",cn:"坐在大树荫下休息了。",parts:[{w:"큰",role:"M",roleCn:"修饰",mean:"大的"},{w:"아래에",role:"L",roleCn:"地点",mean:"树荫下"},{w:"앉아서",role:"V",roleCn:"谓语",mean:"坐"},{w:"쉬었어요",role:"V",roleCn:"谓语",mean:"休息了"}],tip:"「그늘」阴影；아래에 在…下面。",source:"checked"},
+  "나뭇잎":{ko:"가을이 되면 나뭇잎이 노랗게 물들어요.",cn:"到了秋天树叶变黄。",parts:[{w:"가을",role:"T",roleCn:"时间",mean:"秋天"},{w:"되면",role:"V",roleCn:"谓语",mean:"到"},{w:"나뭇잎이",role:"S",roleCn:"主语",mean:"树叶"},{w:"노랗게",role:"M",roleCn:"修饰",mean:"黄黄地"},{w:"물들어요",role:"V",roleCn:"谓语",mean:"染色"}],tip:"「물들다」染色；「노랗게」黄色地。",source:"checked"},
+  "나쁘다":{ko:"담배는 몸에 나빠요.",cn:"烟对身体不好。",parts:[{w:"담배는",role:"S",roleCn:"主语",mean:"烟"},{w:"몸에",role:"O",roleCn:"宾语",mean:"身体"},{w:"나빠요",role:"V",roleCn:"谓语",mean:"不好"}],tip:"「몸에 나쁘다」对身体有害；ㅡ不规则变化。",source:"checked"},
+  "나오다":{ko:"집에서 나오다가 우연히 친구를 만났어요.",cn:"出门时偶然遇到了朋友。",parts:[{w:"집에서",role:"L",roleCn:"地点",mean:"家"},{w:"나오다가",role:"M",roleCn:"修饰",mean:"出来时"},{w:"우연히",role:"M",roleCn:"修饰",mean:"偶然"},{w:"친구를",role:"O",roleCn:"宾语",mean:"朋友"},{w:"만났어요",role:"V",roleCn:"谓语",mean:"遇到"}],tip:"「나오다」出来；우연히 偶然。",source:"checked"},
+  "나이":{ko:"나이가 몇 살이에요?",cn:"你多大年纪？",parts:[{w:"나이가",role:"S",roleCn:"主语",mean:"年龄"},{w:"몇",role:"O",roleCn:"宾语",mean:"几"},{w:"살이에요",role:"V",roleCn:"谓语",mean:"是岁"}],tip:"韩语问年龄用「몇 살이에요?」。",source:"checked"},
+  "날씨":{ko:"오늘 날씨가 흐리지만 비는 안 올 것 같아요.",cn:"今天天气阴，不过好像不会下雨。",parts:[{w:"오늘",role:"T",roleCn:"时间",mean:"今天"},{w:"날씨가",role:"S",roleCn:"主语",mean:"天气"},{w:"흐리지만",role:"V",roleCn:"谓语",mean:"阴"},{w:"비는",role:"S",roleCn:"主语",mean:"雨"},{w:"안",role:"M",roleCn:"修饰",mean:"不"},{w:"같아요",role:"V",roleCn:"谓语",mean:"要下"}],tip:"「- 것 같다」好像；「지만」转折。",source:"checked"},
+  "날짜":{ko:"시험 날짜를 꼭 확인하세요.",cn:"请一定确认考试日期。",parts:[{w:"날짜를",role:"O",roleCn:"宾语",mean:"考试日期"},{w:"꼭",role:"M",roleCn:"修饰",mean:"一定"},{w:"확인하세요",role:"V",roleCn:"谓语",mean:"请确认"}],tip:"「꼭」务必；확인하다 确认。",source:"checked"},
+  "남자":{ko:"그 남자는 우리 팀 친구예요.",cn:"那个男人是我们队的朋友。",parts:[{w:"그",role:"S",roleCn:"主语",mean:"那"},{w:"남자는",role:"S",roleCn:"主语",mean:"男人"},{w:"우리",role:"M",roleCn:"修饰",mean:"我们的"},{w:"친구예요",role:"V",roleCn:"谓语",mean:"是队友"}],tip:"主题助词는 引出话题。",source:"checked"},
+  "낮다":{ko:"천장이 낮아서 큰 가구를 못 넣었어요.",cn:"天花板低所以放不下大家具。",parts:[{w:"천장이",role:"S",roleCn:"主语",mean:"天花板"},{w:"낮아서",role:"V",roleCn:"谓语",mean:"低"},{w:"큰",role:"M",roleCn:"修饰",mean:"大的"},{w:"가구를",role:"O",roleCn:"宾语",mean:"家具"},{w:"못",role:"M",roleCn:"修饰",mean:"无法"},{w:"넣었어요",role:"V",roleCn:"谓语",mean:"放"}],tip:"「낮다」低；못 V 无法。",source:"checked"},
+  "내려가다":{ko:"지하철역으로 내려가서 기차를 탔어요.",cn:"下到地铁站坐了火车。",parts:[{w:"지하철역으로",role:"L",roleCn:"地点",mean:"地铁站"},{w:"내려가서",role:"V",roleCn:"谓语",mean:"下去"},{w:"기차를",role:"O",roleCn:"宾语",mean:"火车"},{w:"탔어요",role:"V",roleCn:"谓语",mean:"乘了"}],tip:"「내려가다」下去；-아서 连接。",source:"checked"},
+  "내리다":{ko:"다음 역에서 내려서 갈아타세요.",cn:"下一站下车换乘。",parts:[{w:"역에서",role:"L",roleCn:"地点",mean:"下一站"},{w:"내려서",role:"V",roleCn:"谓语",mean:"下车"},{w:"갈아타세요",role:"V",roleCn:"谓语",mean:"请换乘"}],tip:"「내리다」下车；「갈아타다」换乘。",source:"checked"},
+  "내일":{ko:"내일 다시 만나요.",cn:"明天再见。",parts:[{w:"내일",role:"T",roleCn:"时间",mean:"明天"},{w:"다시",role:"M",roleCn:"修饰",mean:"再"},{w:"만나요",role:"V",roleCn:"谓语",mean:"见"}],tip:"「다시」再次；만나다 见面。",source:"checked"},
+  "냉수":{ko:"냉수 한 잔을 주세요.",cn:"请给我一杯凉水。",parts:[{w:"한",role:"O",roleCn:"宾语",mean:"一"},{w:"잔을",role:"O",roleCn:"宾语",mean:"杯"},{w:"주세요",role:"V",roleCn:"谓语",mean:"请给"}],tip:"点单常用「주세요」。",source:"checked"},
+  "냉장고":{ko:"냉장고에 음식이 많이 있어요.",cn:"冰箱里有很多食物。",parts:[{w:"냉장고에",role:"L",roleCn:"地点",mean:"冰箱里"},{w:"음식이",role:"S",roleCn:"主语",mean:"食物"},{w:"많이",role:"M",roleCn:"修饰",mean:"很多"},{w:"있어요",role:"V",roleCn:"谓语",mean:"有"}],tip:"「많이」很多地；있다 表示存在。",source:"checked"},
+  "너":{ko:"너는 내 친구야.",cn:"你是我的朋友。",parts:[{w:"너는",role:"S",roleCn:"主语",mean:"你"},{w:"내",role:"M",roleCn:"修饰",mean:"我的"},{w:"친구야",role:"V",roleCn:"谓语",mean:"是朋友"}],tip:"너 是平语「你」；「N이야/야」= 平语的「是」。",source:"checked"},
+  "너무":{ko:"오늘 추워서 옷을 너무 많이 입었어요.",cn:"今天冷所以衣服穿得太多了。",parts:[{w:"오늘",role:"T",roleCn:"时间",mean:"今天"},{w:"추워서",role:"V",roleCn:"谓语",mean:"冷"},{w:"옷을",role:"O",roleCn:"宾语",mean:"衣服"},{w:"너무",role:"M",roleCn:"修饰",mean:"太"},{w:"많이",role:"M",roleCn:"修饰",mean:"多"},{w:"입었어요",role:"V",roleCn:"谓语",mean:"穿了"}],tip:"「너무」太；-아서 原因。",source:"checked"},
+  "너무 귀여워요":{ko:"이 아기는 너무 귀여워요!",cn:"这个宝宝太可爱了！",parts:[{w:"이",role:"M",roleCn:"修饰",mean:"这"},{w:"아기는",role:"S",roleCn:"主语",mean:"宝宝"},{w:"너무",role:"M",roleCn:"修饰",mean:"太"},{w:"귀여워요",role:"V",roleCn:"谓语",mean:"可爱"}],tip:"「귀엽다」可爱，ㅂ不规则→귀여워요。",source:"checked"},
+  "넓다":{ko:"우리 새 집은 방이 넓고 채광이 좋아요.",cn:"我们新家房间宽敞采光好。",parts:[{w:"우리",role:"M",roleCn:"修饰",mean:"我们的"},{w:"새",role:"M",roleCn:"修饰",mean:"新的"},{w:"집은",role:"S",roleCn:"主语",mean:"家"},{w:"방이",role:"S",roleCn:"主语",mean:"房间"},{w:"넓고",role:"M",roleCn:"修饰",mean:"宽敞"},{w:"채광이",role:"S",roleCn:"主语",mean:"采光"},{w:"좋아요",role:"V",roleCn:"谓语",mean:"好"}],tip:"「넓다」宽敞；「채광」采光。",source:"checked"},
+  "네":{ko:"네, 알겠어요.",cn:"是的，知道了。",parts:[{w:"알겠어요",role:"V",roleCn:"谓语",mean:"知道了"}],tip:"「네」是肯定回答；「알겠어요」我明白了。",source:"checked"},
+  "년":{ko:"내년에 한국에 유학을 갈 거예요.",cn:"明年要去韩国留学。",parts:[{w:"내년",role:"T",roleCn:"时间",mean:"明年"},{w:"한국에",role:"L",roleCn:"地点",mean:"韩国"},{w:"유학을",role:"O",roleCn:"宾语",mean:"留学"},{w:"거예요",role:"V",roleCn:"谓语",mean:"要去"}],tip:"「(으)ㄹ 거예요」将来时。",source:"checked"},
+  "노래하다":{ko:"노래방에서 친구와 노래했어요.",cn:"在练歌房和朋友唱歌了。",parts:[{w:"노래방에서",role:"L",roleCn:"地点",mean:"练歌房"},{w:"친구와",role:"O",roleCn:"宾语",mean:"朋友"},{w:"노래했어요",role:"V",roleCn:"谓语",mean:"唱了"}],tip:"「노래하다」唱歌；노래방 练歌房。",source:"checked"},
+  "노선":{ko:"지하철 노선이 바뀌어서 헷갈렸어요.",cn:"地铁线路改了所以搞混了。",parts:[{w:"노선이",role:"S",roleCn:"主语",mean:"地铁线路"},{w:"바뀌어서",role:"V",roleCn:"谓语",mean:"改"},{w:"헷갈렸어요",role:"V",roleCn:"谓语",mean:"迷糊了"}],tip:"「헷갈리다」混淆、搞不清。",source:"checked"},
+  "놀다":{ko:"주말에 친구들과 신나게 놀았어요.",cn:"周末和朋友们玩得很开心。",parts:[{w:"주말에",role:"T",roleCn:"时间",mean:"周末"},{w:"친구들과",role:"O",roleCn:"宾语",mean:"朋友们"},{w:"신나게",role:"M",roleCn:"修饰",mean:"开心地"},{w:"놀았어요",role:"V",roleCn:"谓语",mean:"玩了"}],tip:"「신나게」兴高采烈地；놀다 玩。",source:"checked"},
+  "놀라다":{ko:"갑자기 전화가 와서 놀랐어요.",cn:"突然来电话吓了一跳。",parts:[{w:"갑자기",role:"M",roleCn:"修饰",mean:"突然"},{w:"전화가",role:"S",roleCn:"主语",mean:"电话"},{w:"와서",role:"V",roleCn:"谓语",mean:"来"},{w:"놀랐어요",role:"V",roleCn:"谓语",mean:"吓了一跳"}],tip:"「놀라다」惊讶；-아서 原因。",source:"checked"},
+  "높다":{ko:"이 산은 생각보다 높아서 오르기 힘들었어요.",cn:"这座山比想象的高爬起来费劲。",parts:[{w:"이",role:"M",roleCn:"修饰",mean:"这"},{w:"산은",role:"S",roleCn:"主语",mean:"山"},{w:"생각보다",role:"M",roleCn:"修饰",mean:"比想象"},{w:"높아서",role:"V",roleCn:"谓语",mean:"高"},{w:"오르기",role:"O",roleCn:"宾语",mean:"爬"},{w:"힘들었어요",role:"V",roleCn:"谓语",mean:"费劲"}],tip:"「오르다」爬；「-아서」原因。",source:"checked"},
+  "누구":{ko:"저 사람이 누구예요?",cn:"那个人是谁？",parts:[{w:"저",role:"S",roleCn:"主语",mean:"我"},{w:"사람이",role:"S",roleCn:"主语",mean:"人"},{w:"누구예요",role:"V",roleCn:"谓语",mean:"是谁"}],tip:"询问身份用「누구예요?」；有收音用이，无收音用가。",source:"checked"},
+  "누나":{ko:"누나가 생일에 선물을 줬어요.",cn:"姐姐在生日那天送了礼物。",parts:[{w:"누나가",role:"S",roleCn:"主语",mean:"姐姐"},{w:"생일에",role:"T",roleCn:"时间",mean:"生日"},{w:"선물을",role:"O",roleCn:"宾语",mean:"礼物"},{w:"줬어요",role:"V",roleCn:"谓语",mean:"送了"}],tip:"男生称姐姐为누나；时间名词+에。",source:"checked"},
+  "눈":{ko:"밤사이 눈이 많이 내려서 온 세상이 하얘졌어요.",cn:"夜里下了很多雪，整个世界都变白了。",parts:[{w:"밤사이",role:"T",roleCn:"时间",mean:"夜间"},{w:"눈이",role:"S",roleCn:"主语",mean:"雪"},{w:"많이",role:"M",roleCn:"修饰",mean:"很多"},{w:"내려서",role:"V",roleCn:"谓语",mean:"下"},{w:"세상이",role:"S",roleCn:"主语",mean:"整个世界"},{w:"하얘졌어요",role:"V",roleCn:"谓语",mean:"变白了"}],tip:"「하얘지다」变白；-아서 原因。",source:"checked"},
+  "눈사람":{ko:"아이들이 눈을 뭉쳐서 눈사람을 만들었어요.",cn:"孩子们把雪团起来堆了雪人。",parts:[{w:"아이들이",role:"S",roleCn:"主语",mean:"孩子们"},{w:"눈을",role:"O",roleCn:"宾语",mean:"雪"},{w:"뭉쳐서",role:"M",roleCn:"修饰",mean:"团起来"},{w:"눈사람을",role:"O",roleCn:"宾语",mean:"雪人"},{w:"만들었어요",role:"V",roleCn:"谓语",mean:"堆了"}],tip:"「뭉치다」团、捏；「눈사람을 만들다」堆雪人。",source:"checked"},
+  "느리다":{ko:"컴퓨터가 오래되서 너무 느려요.",cn:"电脑太旧了很慢。",parts:[{w:"컴퓨터가",role:"S",roleCn:"主语",mean:"电脑"},{w:"오래되서",role:"V",roleCn:"谓语",mean:"旧"},{w:"너무",role:"M",roleCn:"修饰",mean:"太"},{w:"느려요",role:"V",roleCn:"谓语",mean:"慢"}],tip:"「느리다」慢；르不规则느려요。",source:"checked"},
+  "능력":{ko:"그는 능력이 있어서 믿음이 가요.",cn:"他有能力所以让人信赖。",parts:[{w:"그",role:"S",roleCn:"主语",mean:"他"},{w:"능력이",role:"S",roleCn:"主语",mean:"能力"},{w:"있어서",role:"V",roleCn:"谓语",mean:"有"},{w:"믿음이",role:"S",roleCn:"主语",mean:"信任"},{w:"가요",role:"V",roleCn:"谓语",mean:"产生"}],tip:"「능력이 있다」有能力；「믿음이 가다」可信。",source:"checked"},
+  "다리":{ko:"계단을 많이 올라가서 다리가 저려요.",cn:"爬了很多楼梯腿发麻。",parts:[{w:"계단을",role:"O",roleCn:"宾语",mean:"楼梯"},{w:"많이",role:"M",roleCn:"修饰",mean:"多"},{w:"올라가서",role:"V",roleCn:"谓语",mean:"爬"},{w:"다리가",role:"S",roleCn:"主语",mean:"腿"},{w:"저려요",role:"V",roleCn:"谓语",mean:"发麻"}],tip:"「저리다」发麻；「계단을 오르다」爬楼梯。",source:"checked"},
+  "다이어트":{ko:"다이어트를 하려고 저녁을 줄였어요.",cn:"打算减肥所以减少了晚饭。",parts:[{w:"다이어트를",role:"O",roleCn:"宾语",mean:"减肥"},{w:"하려고",role:"V",roleCn:"谓语",mean:"打算"},{w:"저녁을",role:"O",roleCn:"宾语",mean:"晚饭"},{w:"줄였어요",role:"V",roleCn:"谓语",mean:"减少了"}],tip:"「-(으)려고」打算；「줄이다」减少。",source:"checked"},
+  "닫다":{ko:"추워서 문을 꼭 닫으세요.",cn:"冷所以请紧关门。",parts:[{w:"추워서",role:"V",roleCn:"谓语",mean:"冷"},{w:"문을",role:"O",roleCn:"宾语",mean:"门"},{w:"꼭",role:"M",roleCn:"修饰",mean:"紧紧地"},{w:"닫으세요",role:"V",roleCn:"谓语",mean:"请关"}],tip:"「닫다」关；「꼭」紧紧地、务必。",source:"checked"},
+  "달리기":{ko:"달리기를 하면 체력이 좋아져요.",cn:"跑步的话体力会变好。",parts:[{w:"달리기를",role:"O",roleCn:"宾语",mean:"跑步"},{w:"하면",role:"V",roleCn:"谓语",mean:"做的话"},{w:"체력이",role:"S",roleCn:"主语",mean:"体力"},{w:"좋아져요",role:"V",roleCn:"谓语",mean:"变好"}],tip:"「체력이 좋아지다」体力变好。",source:"checked"},
+  "답":{ko:"시험 답을 다 썼어요.",cn:"把考试答案全写上了。",parts:[{w:"시험",role:"O",roleCn:"宾语",mean:"考试"},{w:"답을",role:"O",roleCn:"宾语",mean:"答案"},{w:"다",role:"M",roleCn:"修饰",mean:"全"},{w:"썼어요",role:"V",roleCn:"谓语",mean:"写了"}],tip:"「답을 쓰다」写答案。",source:"checked"},
+  "대단하다":{ko:"그가 혼자 다 해냈는데 정말 대단해요.",cn:"他独自全做到了真的很了不起。",parts:[{w:"그",role:"S",roleCn:"主语",mean:"他"},{w:"혼자",role:"M",roleCn:"修饰",mean:"独自"},{w:"다",role:"M",roleCn:"修饰",mean:"全"},{w:"해냈는데",role:"V",roleCn:"谓语",mean:"做到了"},{w:"정말",role:"M",roleCn:"修饰",mean:"真的"},{w:"대단해요",role:"V",roleCn:"谓语",mean:"了不起"}],tip:"「대단하다」厉害；-는데 背景。",source:"checked"},
+  "대답":{ko:"선생님의 질문에 대답했어요.",cn:"回答了老师的问题。",parts:[{w:"선생님의",role:"S",roleCn:"主语",mean:"老师的"},{w:"질문에",role:"O",roleCn:"宾语",mean:"问题"},{w:"대답했어요",role:"V",roleCn:"谓语",mean:"回答了"}],tip:"「대답하다」回答；「에」表对象。",source:"checked"},
+  "덥다":{ko:"여름에는 날씨가 너무 더워서 에어컨을 켜요.",cn:"夏天天气太热所以开空调。",parts:[{w:"여름",role:"T",roleCn:"时间",mean:"夏天"},{w:"날씨가",role:"S",roleCn:"主语",mean:"天气"},{w:"너무",role:"M",roleCn:"修饰",mean:"太"},{w:"더워서",role:"V",roleCn:"谓语",mean:"热"},{w:"에어컨을",role:"O",roleCn:"宾语",mean:"空调"},{w:"켜요",role:"V",roleCn:"谓语",mean:"开"}],tip:"「덥다」热；-아서 原因。",source:"checked"},
+  "데려다주다":{ko:"친구를 집까지 데려다줬어요.",cn:"把朋友送到了家。",parts:[{w:"친구를",role:"O",roleCn:"宾语",mean:"朋友"},{w:"집까지",role:"L",roleCn:"地点",mean:"家"},{w:"데려다줬어요",role:"V",roleCn:"谓语",mean:"送去"}],tip:"「데려다주다」送去；「까지」直到。",source:"checked"},
+  "도망치다":{ko:"고양이가 상자에서 도망쳤어요.",cn:"猫从箱子里逃跑了。",parts:[{w:"고양이가",role:"S",roleCn:"主语",mean:"猫"},{w:"상자에서",role:"L",roleCn:"地点",mean:"箱子里"},{w:"도망쳤어요",role:"V",roleCn:"谓语",mean:"逃跑了"}],tip:"「도망치다」逃跑；-에서 从。",source:"checked"},
+  "도서관":{ko:"도서관에서 책을 빌려서 집에서 읽어요.",cn:"在图书馆借了书回家读。",parts:[{w:"도서관에서",role:"L",roleCn:"地点",mean:"图书馆"},{w:"책을",role:"O",roleCn:"宾语",mean:"书"},{w:"빌려서",role:"V",roleCn:"谓语",mean:"借"},{w:"집에서",role:"L",roleCn:"地点",mean:"家"},{w:"읽어요",role:"V",roleCn:"谓语",mean:"读"}],tip:"「빌리다」借入；-어서 连接。",source:"checked"},
+  "도장":{ko:"서류에 도장을 찍었어요.",cn:"在文件上盖了章。",parts:[{w:"서류에",role:"L",roleCn:"地点",mean:"文件"},{w:"도장을",role:"O",roleCn:"宾语",mean:"章"},{w:"찍었어요",role:"V",roleCn:"谓语",mean:"盖了"}],tip:"「도장을 찍다」盖章。",source:"checked"},
+  "도착하다":{ko:"비행기가 제시간에 도착했어요.",cn:"飞机准时到达了。",parts:[{w:"비행기가",role:"S",roleCn:"主语",mean:"飞机"},{w:"제시간에",role:"M",roleCn:"修饰",mean:"准时"},{w:"도착했어요",role:"V",roleCn:"谓语",mean:"到达了"}],tip:"「제시간에」准时；도착하다 到达。",source:"checked"},
+  "돌려주다":{ko:"빌린 책을 제때 돌려줬어요.",cn:"按时归还了借的书。",parts:[{w:"빌린",role:"M",roleCn:"修饰",mean:"借的"},{w:"책을",role:"O",roleCn:"宾语",mean:"书"},{w:"제때",role:"M",roleCn:"修饰",mean:"按时"},{w:"돌려줬어요",role:"V",roleCn:"谓语",mean:"还了"}],tip:"「돌려주다」归还；제때 按时。",source:"checked"},
+  "동생":{ko:"동생을 돌봐 주셨어요.",cn:"（有人）帮忙照顾了弟弟。",parts:[{w:"동생을",role:"O",roleCn:"宾语",mean:"弟弟"},{w:"주셨어요",role:"V",roleCn:"谓语",mean:"照顾了"}],tip:"「돌보다」照顾；주셨어요 含「为我而做」的敬意。",source:"checked"},
+  "듣다":{ko:"저는 공부할 때 음악을 들어요.",cn:"我学习的时候听音乐。",parts:[{w:"저는",role:"S",roleCn:"主语",mean:"我"},{w:"공부할",role:"M",roleCn:"修饰",mean:"学习"},{w:"때",role:"M",roleCn:"修饰",mean:"时候"},{w:"음악을",role:"O",roleCn:"宾语",mean:"音乐"},{w:"들어요",role:"V",roleCn:"谓语",mean:"听"}],tip:"「-(으)ㄹ 때」…的时候；「음악을 듣다」听音乐。",source:"checked"},
+  "들어가다":{ko:"교실에 들어가서 자리에 앉았어요.",cn:"进教室坐在座位上。",parts:[{w:"교실에",role:"L",roleCn:"地点",mean:"教室"},{w:"들어가서",role:"V",roleCn:"谓语",mean:"进去"},{w:"자리에",role:"O",roleCn:"宾语",mean:"座位"},{w:"앉았어요",role:"V",roleCn:"谓语",mean:"坐了"}],tip:"「들어가다」进入；앉다 坐。",source:"checked"},
+  "등록하다":{ko:"학원에 등록했어요.",cn:"报名了培训班。",parts:[{w:"학원에",role:"L",roleCn:"地点",mean:"培训班"},{w:"등록했어요",role:"V",roleCn:"谓语",mean:"注册了"}],tip:"「등록하다」注册、报名。",source:"checked"},
+  "등산":{ko:"주말에 친구와 등산을 갔어요.",cn:"周末和朋友去登山了。",parts:[{w:"주말에",role:"T",roleCn:"时间",mean:"周末"},{w:"친구와",role:"O",roleCn:"宾语",mean:"朋友"},{w:"등산을",role:"O",roleCn:"宾语",mean:"登山"},{w:"갔어요",role:"V",roleCn:"谓语",mean:"去了"}],tip:"「등산을 가다」去登山。",source:"checked"},
+  "따뜻하다":{ko:"따뜻한 봄 바람이 불어와요.",cn:"温暖的春风拂来。",parts:[{w:"따뜻한",role:"M",roleCn:"修饰",mean:"温暖的"},{w:"봄",role:"O",roleCn:"宾语",mean:"春天"},{w:"바람이",role:"S",roleCn:"主语",mean:"风"},{w:"불어와요",role:"V",roleCn:"谓语",mean:"吹来"}],tip:"「따뜻한」温暖的；「불어오다」吹来。",source:"checked"},
+  "딸":{ko:"딸이 피아노를 쳐요.",cn:"女儿弹钢琴。",parts:[{w:"딸이",role:"S",roleCn:"主语",mean:"女儿"},{w:"피아노를",role:"O",roleCn:"宾语",mean:"钢琴"},{w:"쳐요",role:"V",roleCn:"谓语",mean:"弹"}],tip:"乐器名词搭配「치다」表示弹奏。",source:"checked"},
+  "떠나다":{ko:"고향을 떠난 지 벌써 5년이 됐어요.",cn:"离开故乡已经五年了。",parts:[{w:"고향을",role:"O",roleCn:"宾语",mean:"故乡"},{w:"지",role:"M",roleCn:"修饰",mean:"离开以来"},{w:"벌써",role:"M",roleCn:"修饰",mean:"已经"},{w:"5년이",role:"S",roleCn:"主语",mean:"五年"},{w:"됐어요",role:"V",roleCn:"谓语",mean:"了"}],tip:"「-은 지 …되다」离开多久。",source:"checked"},
+  "떡볶이":{ko:"떡볶이는 매콤달콤해서 학생들 입맛에 딱이에요.",cn:"炒年糕又辣又甜，正合学生口味。",parts:[{w:"떡볶이는",role:"S",roleCn:"主语",mean:"炒年糕"},{w:"매콤달콤해서",role:"V",roleCn:"谓语",mean:"又辣又甜"},{w:"학생들",role:"O",roleCn:"宾语",mean:"学生们"},{w:"입맛에",role:"O",roleCn:"宾语",mean:"口味"},{w:"딱이에요",role:"V",roleCn:"谓语",mean:"正合适"}],tip:"「매콤달콤하다」又辣又甜；「입맛에 딱」合口味。",source:"checked"},
+  "떨어지다":{ko:"시험에서 떨어져서 다시 공부할 거예요.",cn:"考试没过所以要重新学。",parts:[{w:"시험에서",role:"O",roleCn:"宾语",mean:"考试"},{w:"떨어져서",role:"V",roleCn:"谓语",mean:"落榜"},{w:"다시",role:"M",roleCn:"修饰",mean:"再"},{w:"거예요",role:"V",roleCn:"谓语",mean:"要学"}],tip:"「시험에서 떨어지다」落榜。",source:"checked"},
+  "똑똑하다":{ko:"우리 조카는 공부를 잘해서 똑똑해요.",cn:"我们侄子学习好很聪明。",parts:[{w:"우리",role:"M",roleCn:"修饰",mean:"我们的"},{w:"조카는",role:"S",roleCn:"主语",mean:"侄子"},{w:"공부를",role:"O",roleCn:"宾语",mean:"学习"},{w:"잘해서",role:"V",roleCn:"谓语",mean:"好"},{w:"똑똑해요",role:"V",roleCn:"谓语",mean:"聪明"}],tip:"「똑똑하다」聪明；-아서 原因。",source:"checked"},
+  "뛰다":{ko:"아이들이 운동장에서 뛰어놀고 있어요.",cn:"孩子们在操场上跑着玩。",parts:[{w:"아이들이",role:"S",roleCn:"主语",mean:"孩子们"},{w:"운동장에서",role:"L",roleCn:"地点",mean:"操场"},{w:"있어요",role:"V",roleCn:"谓语",mean:"在跑玩"}],tip:"「뛰어놀다」跑着玩；现在进行时。",source:"checked"},
+  "라면":{ko:"배가 고플 때 라면을 끓여 먹어요.",cn:"饿的时候煮拉面吃。",parts:[{w:"배가",role:"S",roleCn:"主语",mean:"肚子"},{w:"고플",role:"T",roleCn:"时间",mean:"饿"},{w:"때",role:"M",roleCn:"修饰",mean:"时候"},{w:"라면을",role:"O",roleCn:"宾语",mean:"拉面"},{w:"먹어요",role:"V",roleCn:"谓语",mean:"煮着吃"}],tip:"「-을 때」…的时候；「끓여 먹다」煮来吃。",source:"checked"},
+  "마시다":{ko:"물을 충분히 마시는 게 건강에 좋아요.",cn:"多喝水对健康有益。",parts:[{w:"물을",role:"O",roleCn:"宾语",mean:"水"},{w:"충분히",role:"M",roleCn:"修饰",mean:"充分地"},{w:"게",role:"M",roleCn:"修饰",mean:"这件事"},{w:"건강에",role:"O",roleCn:"宾语",mean:"健康"},{w:"좋아요",role:"V",roleCn:"谓语",mean:"有益"}],tip:"「-는 게」名词化；「건강에 좋다」对健康好。",source:"checked"},
+  "만나다":{ko:"공항에서 오랜만에 친구를 만났어요.",cn:"在机场隔了很久见了朋友。",parts:[{w:"공항에서",role:"L",roleCn:"地点",mean:"机场"},{w:"오랜만에",role:"M",roleCn:"修饰",mean:"隔了很久"},{w:"친구를",role:"O",roleCn:"宾语",mean:"朋友"},{w:"만났어요",role:"V",roleCn:"谓语",mean:"见了"}],tip:"「오랜만에」时隔已久；만나다 见面。",source:"checked"},
+  "만들다":{ko:"주말에 김밥을 만들어서 소풍에 갔어요.",cn:"周末做了紫菜包饭去郊游。",parts:[{w:"주말에",role:"T",roleCn:"时间",mean:"周末"},{w:"김밥을",role:"O",roleCn:"宾语",mean:"紫菜包饭"},{w:"만들어서",role:"V",roleCn:"谓语",mean:"做"},{w:"소풍에",role:"L",roleCn:"地点",mean:"郊游"},{w:"갔어요",role:"V",roleCn:"谓语",mean:"去了"}],tip:"「-아서」动作先后；만들다 制作。",source:"checked"},
+  "많다":{ko:"도서관에 사람이 많아서 자리가 없어요.",cn:"图书馆人多没座位。",parts:[{w:"도서관에",role:"L",roleCn:"地点",mean:"图书馆"},{w:"사람이",role:"S",roleCn:"主语",mean:"人"},{w:"많아서",role:"V",roleCn:"谓语",mean:"多"},{w:"자리가",role:"S",roleCn:"主语",mean:"座位"},{w:"없어요",role:"V",roleCn:"谓语",mean:"没有"}],tip:"「-아서」原因；많다 多。",source:"checked"},
+  "말하다":{ko:"저는 한국어로 자기소개를 했어요.",cn:"我用韩语做了自我介绍。",parts:[{w:"저는",role:"S",roleCn:"主语",mean:"我"},{w:"한국어로",role:"O",roleCn:"宾语",mean:"韩语"},{w:"자기소개를",role:"O",roleCn:"宾语",mean:"自我介绍"},{w:"했어요",role:"V",roleCn:"谓语",mean:"做了"}],tip:"「한국어로」用韩语；(으)로 表方式；「말하다」说。",source:"checked"},
+  "맛":{ko:"이 김치찌개는 맛이 정말 좋아요.",cn:"这泡菜汤味道真的很棒。",parts:[{w:"이",role:"M",roleCn:"修饰",mean:"这"},{w:"김치찌개는",role:"S",roleCn:"主语",mean:"泡菜汤"},{w:"맛이",role:"S",roleCn:"主语",mean:"味道"},{w:"정말",role:"M",roleCn:"修饰",mean:"真的"},{w:"좋아요",role:"V",roleCn:"谓语",mean:"好"}],tip:"「맛이 좋다」味道好；主题是김치찌개。",source:"checked"},
+  "맛보다":{ko:"국을 맛보니까 간이 딱 맞았어요.",cn:"一尝汤咸淡正合适。",parts:[{w:"국을",role:"O",roleCn:"宾语",mean:"汤"},{w:"맛보니까",role:"M",roleCn:"修饰",mean:"一尝"},{w:"간이",role:"S",roleCn:"主语",mean:"咸淡"},{w:"딱",role:"M",roleCn:"修饰",mean:"正好"},{w:"맞았어요",role:"V",roleCn:"谓语",mean:"合适"}],tip:"「맛보다」尝；「간이 맞다」咸淡合适。",source:"checked"},
+  "맛있다":{ko:"이 집은 음식이 정말 맛있어서 손님이 많아요.",cn:"这家店菜真的好吃所以客人多。",parts:[{w:"이",role:"M",roleCn:"修饰",mean:"这家"},{w:"집은",role:"S",roleCn:"主语",mean:"店"},{w:"음식이",role:"S",roleCn:"主语",mean:"菜"},{w:"정말",role:"M",roleCn:"修饰",mean:"真的"},{w:"맛있어서",role:"V",roleCn:"谓语",mean:"好吃"},{w:"손님이",role:"S",roleCn:"主语",mean:"客人"},{w:"많아요",role:"V",roleCn:"谓语",mean:"多"}],tip:"「맛있다」好吃；-아서 原因。",source:"checked"},
+  "맥주":{ko:"친구와 저녁에 맥주를 한 잔을 마셨어요.",cn:"晚上和朋友喝了一杯啤酒。",parts:[{w:"친구와",role:"O",roleCn:"宾语",mean:"朋友"},{w:"저녁에",role:"T",roleCn:"时间",mean:"晚上"},{w:"맥주를",role:"O",roleCn:"宾语",mean:"啤酒"},{w:"한",role:"O",roleCn:"宾语",mean:"一"},{w:"잔을",role:"O",roleCn:"宾语",mean:"杯"},{w:"마셨어요",role:"V",roleCn:"谓语",mean:"喝了"}],tip:"「와」和；过去时마셨어요。",source:"checked"},
+  "머리":{ko:"어제부터 머리가 계속 아파요.",cn:"从昨天开始头一直疼。",parts:[{w:"어제",role:"T",roleCn:"时间",mean:"昨天"},{w:"부터",role:"M",roleCn:"修饰",mean:"起"},{w:"머리가",role:"S",roleCn:"主语",mean:"头"},{w:"계속",role:"M",roleCn:"修饰",mean:"一直"},{w:"아파요",role:"V",roleCn:"谓语",mean:"疼"}],tip:"「-(으)부터」从…起；「머리가 아프다」头疼。",source:"checked"},
+  "머물다":{ko:"서울에서 3일간 머물렀어요.",cn:"在首尔待了三天。",parts:[{w:"서울에서",role:"L",roleCn:"地点",mean:"首尔"},{w:"3일간",role:"T",roleCn:"时间",mean:"三天"},{w:"머물렀어요",role:"V",roleCn:"谓语",mean:"停留了"}],tip:"「머물다」停留；「3일간」三天期间。",source:"checked"},
+  "먹다":{ko:"저는 아침에 밥을 먹고 학교에 가요.",cn:"我早上吃完饭去学校。",parts:[{w:"저는",role:"S",roleCn:"主语",mean:"我"},{w:"아침에",role:"T",roleCn:"时间",mean:"早上"},{w:"밥을",role:"O",roleCn:"宾语",mean:"饭"},{w:"먹고",role:"M",roleCn:"修饰",mean:"吃完"},{w:"학교에",role:"L",roleCn:"地点",mean:"学校"},{w:"가요",role:"V",roleCn:"谓语",mean:"去"}],tip:"「-고」动作先后；「밥을 먹다」吃饭。",source:"checked"},
+  "멀다":{ko:"회사가 집에서 멀어서 출근 하는 데 시간이 많이 걸려요.",cn:"公司离家远上班花很多时间。",parts:[{w:"회사가",role:"S",roleCn:"主语",mean:"公司"},{w:"집에서",role:"L",roleCn:"地点",mean:"家"},{w:"멀어서",role:"V",roleCn:"谓语",mean:"远"},{w:"출근",role:"O",roleCn:"宾语",mean:"上班"},{w:"데",role:"M",roleCn:"修饰",mean:"花"},{w:"시간이",role:"S",roleCn:"主语",mean:"时间"},{w:"많이",role:"M",roleCn:"修饰",mean:"很多"},{w:"걸려요",role:"V",roleCn:"谓语",mean:"花"}],tip:"「멀다」远；「시간이 걸리다」花时间。",source:"checked"},
+  "멋있다":{ko:"오빠가 오늘 정말 멋있어요.",cn:"哥哥今天真的很帅。",parts:[{w:"오빠가",role:"S",roleCn:"主语",mean:"哥哥"},{w:"오늘",role:"T",roleCn:"时间",mean:"今天"},{w:"정말",role:"M",roleCn:"修饰",mean:"真的"},{w:"멋있어요",role:"V",roleCn:"谓语",mean:"帅"}],tip:"「멋있다」帅气；있→있어요。",source:"checked"},
+  "멋지다":{ko:"오늘 파티에서 정말 멋지게 춤을 췄어요.",cn:"今天在派对上跳舞跳得很帅。",parts:[{w:"오늘",role:"T",roleCn:"时间",mean:"今天"},{w:"파티에서",role:"L",roleCn:"地点",mean:"派对"},{w:"정말",role:"M",roleCn:"修饰",mean:"真的"},{w:"멋지게",role:"M",roleCn:"修饰",mean:"帅气地"},{w:"춤을",role:"O",roleCn:"宾语",mean:"舞"},{w:"췄어요",role:"V",roleCn:"谓语",mean:"跳了"}],tip:"「멋지게」帅气地；춤을 추다 跳舞。",source:"checked"},
+  "명절":{ko:"명절에는 고향에 가요.",cn:"节日回老家。",parts:[{w:"명절",role:"T",roleCn:"时间",mean:"节日"},{w:"고향에",role:"L",roleCn:"地点",mean:"老家"},{w:"가요",role:"V",roleCn:"谓语",mean:"去"}],tip:"「고향」故乡；명절 节日。",source:"checked"},
+  "모르다":{ko:"이 단어의 뜻을 몰라서 사전을 찾았어요.",cn:"不知道这个单词的意思所以查了词典。",parts:[{w:"이",role:"M",roleCn:"修饰",mean:"这个"},{w:"단어의",role:"S",roleCn:"主语",mean:"单词的"},{w:"뜻을",role:"O",roleCn:"宾语",mean:"意思"},{w:"몰라서",role:"V",roleCn:"谓语",mean:"不知道"},{w:"사전을",role:"O",roleCn:"宾语",mean:"词典"},{w:"찾았어요",role:"V",roleCn:"谓语",mean:"查了"}],tip:"「-아서」原因；「찾다」查、找。",source:"checked"},
+  "모자":{ko:"햇빛이 강해서 모자를 썼어요.",cn:"阳光很强所以戴了帽子。",parts:[{w:"햇빛이",role:"S",roleCn:"主语",mean:"阳光"},{w:"강해서",role:"V",roleCn:"谓语",mean:"强"},{w:"모자를",role:"O",roleCn:"宾语",mean:"帽子"},{w:"썼어요",role:"V",roleCn:"谓语",mean:"戴了"}],tip:"「모자를 쓰다」戴帽子。",source:"checked"},
+  "목":{ko:"목이 따가워서 따뜻한 물을 마셨어요.",cn:"嗓子疼所以喝了温水。",parts:[{w:"목이",role:"S",roleCn:"主语",mean:"嗓子"},{w:"따가워서",role:"V",roleCn:"谓语",mean:"疼"},{w:"따뜻한",role:"M",roleCn:"修饰",mean:"温的"},{w:"물을",role:"O",roleCn:"宾语",mean:"水"},{w:"마셨어요",role:"V",roleCn:"谓语",mean:"喝了"}],tip:"「목이 따갑다」嗓子疼。",source:"checked"},
+  "목마르다":{ko:"더워서 목이 말라요.",cn:"热得嗓子干。",parts:[{w:"더워서",role:"V",roleCn:"谓语",mean:"热"},{w:"목이",role:"S",roleCn:"主语",mean:"嗓子"},{w:"말라요",role:"V",roleCn:"谓语",mean:"干"}],tip:"「목이 마르다」口渴；르不规则말라요。",source:"checked"},
+  "목표":{ko:"올해 목표를 달성했어요.",cn:"达成了今年的目标。",parts:[{w:"올해",role:"T",roleCn:"时间",mean:"今年"},{w:"목표를",role:"O",roleCn:"宾语",mean:"目标"},{w:"달성했어요",role:"V",roleCn:"谓语",mean:"达成了"}],tip:"「목표를 달성하다」达成目标。",source:"checked"},
+  "몸":{ko:"요즘 몸이 안 좋아서 병원에 갔어요.",cn:"最近身体不舒服去了医院。",parts:[{w:"요즘",role:"T",roleCn:"时间",mean:"最近"},{w:"몸이",role:"S",roleCn:"主语",mean:"身体"},{w:"안",role:"M",roleCn:"修饰",mean:"不"},{w:"좋아서",role:"V",roleCn:"谓语",mean:"舒服"},{w:"병원에",role:"L",roleCn:"地点",mean:"医院"},{w:"갔어요",role:"V",roleCn:"谓语",mean:"去了"}],tip:"「몸이 안 좋다」身体不好。",source:"checked"},
+  "무섭다":{ko:"무서운 영화를 보고 잠이 못 잤어요.",cn:"看了恐怖电影没睡着。",parts:[{w:"무서운",role:"M",roleCn:"修饰",mean:"恐怖的"},{w:"영화를",role:"O",roleCn:"宾语",mean:"电影"},{w:"보고",role:"M",roleCn:"修饰",mean:"看"},{w:"잠이",role:"O",roleCn:"宾语",mean:"觉"},{w:"못",role:"M",roleCn:"修饰",mean:"没"},{w:"잤어요",role:"V",roleCn:"谓语",mean:"睡"}],tip:"「무서운」恐怖的；ㅡ不规则무서운。",source:"checked"},
+  "무지개":{ko:"비가 그친 뒤에 무지개가 떴어요.",cn:"雨停后出现了彩虹。",parts:[{w:"비가",role:"S",roleCn:"主语",mean:"雨"},{w:"그친",role:"M",roleCn:"修饰",mean:"停了"},{w:"뒤에",role:"T",roleCn:"时间",mean:"之后"},{w:"무지개가",role:"S",roleCn:"主语",mean:"彩虹"},{w:"떴어요",role:"V",roleCn:"谓语",mean:"出现了"}],tip:"「그치다」停（雨）；「무지개가 뜨다」出彩虹。",source:"checked"},
+  "문":{ko:"바람이 불어서 문을 닫았어요.",cn:"因为刮风把门关上了。",parts:[{w:"바람이",role:"S",roleCn:"主语",mean:"风"},{w:"불어서",role:"V",roleCn:"谓语",mean:"刮"},{w:"문을",role:"O",roleCn:"宾语",mean:"门"},{w:"닫았어요",role:"V",roleCn:"谓语",mean:"关了"}],tip:"「-아서」表示原因。",source:"checked"},
+  "문제":{ko:"수학 문제를 풀다가 막혔어요.",cn:"解题时卡住了。",parts:[{w:"수학",role:"O",roleCn:"宾语",mean:"数学"},{w:"문제를",role:"O",roleCn:"宾语",mean:"题"},{w:"풀다가",role:"M",roleCn:"修饰",mean:"解着"},{w:"막혔어요",role:"V",roleCn:"谓语",mean:"卡住了"}],tip:"「문제를 풀다」解题；「막히다」卡住。",source:"checked"},
+  "물":{ko:"물 한 잔을 마셨어요.",cn:"我喝了一杯水。",parts:[{w:"한",role:"O",roleCn:"宾语",mean:"一"},{w:"잔을",role:"O",roleCn:"宾语",mean:"杯"},{w:"마셨어요",role:"V",roleCn:"谓语",mean:"喝了"}],tip:"韩语量词「잔」用于杯；「한 잔」一杯。",source:"checked"},
+  "뭐":{ko:"지금 뭐 하고 있어요?",cn:"现在在做什么？",parts:[{w:"지금",role:"T",roleCn:"时间",mean:"现在"},{w:"뭐",role:"O",roleCn:"宾语",mean:"什么"},{w:"있어요",role:"V",roleCn:"谓语",mean:"在做"}],tip:"뭐 = 무엇 的口语形式，作宾语接를。",source:"checked"},
+  "미술관":{ko:"미술관에 가서 전시를 봤어요.",cn:"去美术馆看了展览。",parts:[{w:"미술관에",role:"L",roleCn:"地点",mean:"美术馆"},{w:"가서",role:"V",roleCn:"谓语",mean:"去"},{w:"전시를",role:"O",roleCn:"宾语",mean:"展览"},{w:"봤어요",role:"V",roleCn:"谓语",mean:"看了"}],tip:"「전시」展览。",source:"checked"},
+  "미워하다":{ko:"사람을 미워하지 말고 용서하세요.",cn:"别恨人要原谅。",parts:[{w:"사람을",role:"O",roleCn:"宾语",mean:"人"},{w:"말고",role:"M",roleCn:"修饰",mean:"别恨"},{w:"용서하세요",role:"V",roleCn:"谓语",mean:"请原谅"}],tip:"「미워하다」恨；「용서하다」原谅。",source:"checked"},
+  "바나나":{ko:"바나나를 간식으로 먹어요.",cn:"我把香蕉当零食吃。",parts:[{w:"바나나를",role:"O",roleCn:"宾语",mean:"香蕉"},{w:"간식으로",role:"C",roleCn:"补语",mean:"零食"},{w:"먹어요",role:"V",roleCn:"谓语",mean:"吃"}],tip:"「(으)로」表示「作为」。",source:"checked"},
+  "바다":{ko:"여름에 바다에서 수영을 했어요.",cn:"夏天在大海游泳了。",parts:[{w:"여름에",role:"T",roleCn:"时间",mean:"夏天"},{w:"바다에서",role:"L",roleCn:"地点",mean:"大海"},{w:"수영을",role:"O",roleCn:"宾语",mean:"游泳"},{w:"했어요",role:"V",roleCn:"谓语",mean:"做了"}],tip:"「수영을 하다」游泳。",source:"checked"},
+  "바람":{ko:"바람이 세게 불어서 모자가 날아갔어요.",cn:"风刮得很大帽子都飞走了。",parts:[{w:"바람이",role:"S",roleCn:"主语",mean:"风"},{w:"세게",role:"M",roleCn:"修饰",mean:"猛烈地"},{w:"불어서",role:"V",roleCn:"谓语",mean:"刮"},{w:"모자가",role:"O",roleCn:"宾语",mean:"帽子"},{w:"날아갔어요",role:"V",roleCn:"谓语",mean:"飞走了"}],tip:"「불다」刮风；날아가다 飞走。",source:"checked"},
+  "바쁘다":{ko:"요즘 회사 일이 많아서 많이 바빠요.",cn:"最近公司事多很忙。",parts:[{w:"요즘",role:"T",roleCn:"时间",mean:"最近"},{w:"일이",role:"S",roleCn:"主语",mean:"公司的事"},{w:"많아서",role:"V",roleCn:"谓语",mean:"多"},{w:"많이",role:"M",roleCn:"修饰",mean:"很"},{w:"바빠요",role:"V",roleCn:"谓语",mean:"忙"}],tip:"「바쁘다」忙；ㅡ不规则바빠요。",source:"checked"},
+  "바캉스":{ko:"바캉스를 즐기러 해외에 갔어요.",cn:"去海外享受度假了。",parts:[{w:"바캉스를",role:"O",roleCn:"宾语",mean:"度假"},{w:"즐기러",role:"M",roleCn:"修饰",mean:"享受"},{w:"해외에",role:"L",roleCn:"地点",mean:"海外"},{w:"갔어요",role:"V",roleCn:"谓语",mean:"去了"}],tip:"「-러」表示目的；즐기다 享受。",source:"checked"},
+  "박물관":{ko:"박물관을 구경하면서 사진을 찍었어요.",cn:"逛博物馆的同时拍了照片。",parts:[{w:"박물관을",role:"L",roleCn:"地点",mean:"博物馆"},{w:"구경하면서",role:"M",roleCn:"修饰",mean:"一边逛"},{w:"사진을",role:"O",roleCn:"宾语",mean:"照片"},{w:"찍었어요",role:"V",roleCn:"谓语",mean:"拍了"}],tip:"「구경하다」参观；-면서 同时。",source:"checked"},
+  "반찬":{ko:"반찬이 여러 가지 있어요.",cn:"有好几样小菜。",parts:[{w:"반찬이",role:"S",roleCn:"主语",mean:"小菜"},{w:"여러",role:"M",roleCn:"修饰",mean:"好几"},{w:"가지",role:"O",roleCn:"宾语",mean:"种"},{w:"있어요",role:"V",roleCn:"谓语",mean:"有"}],tip:"「여러 가지」好几种。",source:"checked"},
+  "받다":{ko:"우체국에서 소포를 받았어요.",cn:"在邮局收到了包裹。",parts:[{w:"우체국에서",role:"L",roleCn:"地点",mean:"邮局"},{w:"소포를",role:"O",roleCn:"宾语",mean:"包裹"},{w:"받았어요",role:"V",roleCn:"谓语",mean:"收到了"}],tip:"「받다」收到；过去받았어요。",source:"checked"},
+  "발":{ko:"오래 걸어서 발이 아파요.",cn:"走了很久脚疼。",parts:[{w:"오래",role:"M",roleCn:"修饰",mean:"久"},{w:"걸어서",role:"V",roleCn:"谓语",mean:"走"},{w:"발이",role:"S",roleCn:"主语",mean:"脚"},{w:"아파요",role:"V",roleCn:"谓语",mean:"疼"}],tip:"「걷다」走；-아서 表原因。",source:"checked"},
+  "밤":{ko:"밤에 잠을 못 잤어요.",cn:"夜里没睡好觉。",parts:[{w:"밤에",role:"T",roleCn:"时间",mean:"夜里"},{w:"잠을",role:"O",roleCn:"宾语",mean:"觉"},{w:"못",role:"M",roleCn:"修饰",mean:"没能"},{w:"잤어요",role:"V",roleCn:"谓语",mean:"睡"}],tip:"「못 V」没能做；「잠을 자다」睡觉。",source:"checked"},
+  "밥":{ko:"저는 방금 밥을 다 먹었어요.",cn:"我刚刚把饭全吃完了。",parts:[{w:"저는",role:"S",roleCn:"主语",mean:"我"},{w:"방금",role:"T",roleCn:"时间",mean:"刚刚"},{w:"밥을",role:"O",roleCn:"宾语",mean:"饭"},{w:"다",role:"M",roleCn:"修饰",mean:"全"},{w:"먹었어요",role:"V",roleCn:"谓语",mean:"吃了"}],tip:"「다」副词「完全地」；먹었어요 过去时。",source:"checked"},
+  "방":{ko:"제 방을 깨끗하게 청소했어요.",cn:"把我的房间打扫干净了。",parts:[{w:"제",role:"M",roleCn:"修饰",mean:"我的"},{w:"방을",role:"O",roleCn:"宾语",mean:"房间"},{w:"깨끗하게",role:"M",roleCn:"修饰",mean:"干净地"},{w:"청소했어요",role:"V",roleCn:"谓语",mean:"打扫了"}],tip:"「깨끗하게」干净地；形容词副词化。",source:"checked"},
+  "방문하다":{ko:"선생님 댁을 방문했어요.",cn:"拜访了老师家。",parts:[{w:"댁을",role:"L",roleCn:"地点",mean:"老师家"},{w:"방문했어요",role:"V",roleCn:"谓语",mean:"拜访了"}],tip:"「방문하다」访问；「댁」府上（敬语）。",source:"checked"},
+  "방법":{ko:"이 문제를 푸는 방법을 찾았어요.",cn:"找到了解这道题的方法。",parts:[{w:"이",role:"M",roleCn:"修饰",mean:"这个"},{w:"문제를",role:"O",roleCn:"宾语",mean:"问题"},{w:"푸는",role:"M",roleCn:"修饰",mean:"解的"},{w:"방법을",role:"O",roleCn:"宾语",mean:"方法"},{w:"찾았어요",role:"V",roleCn:"谓语",mean:"找到了"}],tip:"「방법을 찾다」找方法；「풀다」解。",source:"checked"},
+  "방학":{ko:"방학 동안 아르바이트를 했어요.",cn:"假期期间做了兼职。",parts:[{w:"동안",role:"T",roleCn:"时间",mean:"假期期间"},{w:"아르바이트를",role:"O",roleCn:"宾语",mean:"兼职"},{w:"했어요",role:"V",roleCn:"谓语",mean:"做了"}],tip:"「동안」期间；아르바이트 兼职。",source:"checked"},
+  "배":{ko:"아침을 안 먹어서 배가 고파요.",cn:"没吃早饭肚子饿。",parts:[{w:"아침을",role:"O",roleCn:"宾语",mean:"早饭"},{w:"안",role:"M",roleCn:"修饰",mean:"没"},{w:"먹어서",role:"V",roleCn:"谓语",mean:"吃"},{w:"배가",role:"S",roleCn:"主语",mean:"肚子"},{w:"고파요",role:"V",roleCn:"谓语",mean:"饿"}],tip:"「배가 고프다」饿；-아서 原因。",source:"checked"},
+  "배고프다":{ko:"아침을 안 먹어서 지금 배가 고파요.",cn:"没吃早饭现在肚子饿。",parts:[{w:"아침을",role:"O",roleCn:"宾语",mean:"早饭"},{w:"안",role:"M",roleCn:"修饰",mean:"没"},{w:"먹어서",role:"V",roleCn:"谓语",mean:"吃"},{w:"지금",role:"T",roleCn:"时间",mean:"现在"},{w:"배가",role:"S",roleCn:"主语",mean:"肚子"},{w:"고파요",role:"V",roleCn:"谓语",mean:"饿"}],tip:"「배가 고프다」饿；不规则고파요。",source:"checked"},
+  "배부르다":{ko:"너무 많이 먹어서 배가 불러요.",cn:"吃太多肚子饱了。",parts:[{w:"너무",role:"M",roleCn:"修饰",mean:"太"},{w:"많이",role:"M",roleCn:"修饰",mean:"多"},{w:"먹어서",role:"V",roleCn:"谓语",mean:"吃"},{w:"배가",role:"S",roleCn:"主语",mean:"肚子"},{w:"불러요",role:"V",roleCn:"谓语",mean:"饱"}],tip:"「배가 부르다」饱；르不规则불러요。",source:"checked"},
+  "배우다":{ko:"한국어를 배운 지 1년이 됐어요.",cn:"学韩语已经一年了。",parts:[{w:"한국어를",role:"O",roleCn:"宾语",mean:"韩语"},{w:"배운",role:"O",roleCn:"宾语",mean:"学"},{w:"지",role:"M",roleCn:"修饰",mean:"以来"},{w:"1년이",role:"S",roleCn:"主语",mean:"一年"},{w:"됐어요",role:"V",roleCn:"谓语",mean:"了"}],tip:"「-은 지」自从；됐어요 已经。",source:"checked"},
+  "백화점":{ko:"백화점에서 세일을 해서 옷을 샀어요.",cn:"百货店打折所以买了衣服。",parts:[{w:"백화점에서",role:"L",roleCn:"地点",mean:"百货店"},{w:"세일을",role:"O",roleCn:"宾语",mean:"打折"},{w:"해서",role:"V",roleCn:"谓语",mean:"做"},{w:"옷을",role:"O",roleCn:"宾语",mean:"衣服"},{w:"샀어요",role:"V",roleCn:"谓语",mean:"买了"}],tip:"「세일을 하다」打折促销。",source:"checked"},
+  "버스":{ko:"버스를 타고 회사에 가요.",cn:"坐公交去公司。",parts:[{w:"버스를",role:"O",roleCn:"宾语",mean:"公交"},{w:"타고",role:"M",roleCn:"修饰",mean:"乘坐"},{w:"회사에",role:"L",roleCn:"地点",mean:"公司"},{w:"가요",role:"V",roleCn:"谓语",mean:"去"}],tip:"「타고 가다」乘坐前往。",source:"checked"},
+  "번개":{ko:"번개가 치고 곧바로 천둥이 울렸어요.",cn:"闪电一闪紧接着雷就响了。",parts:[{w:"번개가",role:"S",roleCn:"主语",mean:"闪电"},{w:"치고",role:"V",roleCn:"谓语",mean:"闪"},{w:"곧바로",role:"M",roleCn:"修饰",mean:"立刻"},{w:"천둥이",role:"S",roleCn:"主语",mean:"雷"},{w:"울렸어요",role:"V",roleCn:"谓语",mean:"响了"}],tip:"「번개가 치다」打闪；「천둥이 울리다」打雷。",source:"checked"},
+  "벌써":{ko:"벌써 도착했어요?",cn:"已经到了吗？",parts:[{w:"벌써",role:"M",roleCn:"修饰",mean:"已经"},{w:"도착했어요",role:"V",roleCn:"谓语",mean:"到了"}],tip:"「벌써」已经（表惊讶、快）。",source:"checked"},
+  "변하다":{ko:"날씨가 갑자기 변했어요.",cn:"天气突然变了。",parts:[{w:"날씨가",role:"S",roleCn:"主语",mean:"天气"},{w:"갑자기",role:"M",roleCn:"修饰",mean:"突然"},{w:"변했어요",role:"V",roleCn:"谓语",mean:"变了"}],tip:"「변하다」变化；갑자기 突然。",source:"checked"},
+  "병":{ko:"감기는 흔한 병이에요.",cn:"感冒是常见的病。",parts:[{w:"감기는",role:"S",roleCn:"主语",mean:"感冒"},{w:"흔한",role:"M",roleCn:"修饰",mean:"常见的"},{w:"병이에요",role:"V",roleCn:"谓语",mean:"病"}],tip:"「흔하다」常见；「N이에요」是。",source:"checked"},
+  "병원":{ko:"몸이 안 좋아서 병원에 갔어요.",cn:"身体不舒服去了医院。",parts:[{w:"몸이",role:"S",roleCn:"主语",mean:"身体"},{w:"안",role:"M",roleCn:"修饰",mean:"不"},{w:"좋아서",role:"V",roleCn:"谓语",mean:"舒服"},{w:"병원에",role:"L",roleCn:"地点",mean:"医院"},{w:"갔어요",role:"V",roleCn:"谓语",mean:"去了"}],tip:"「안 좋다」不舒服；-아서 原因。",source:"checked"},
+  "병원비":{ko:"병원비가 생각보다 많이 나왔어요.",cn:"医药费比想象的花得多。",parts:[{w:"병원비가",role:"S",roleCn:"主语",mean:"医药费"},{w:"생각보다",role:"M",roleCn:"修饰",mean:"比想象"},{w:"많이",role:"M",roleCn:"修饰",mean:"很"},{w:"나왔어요",role:"V",roleCn:"谓语",mean:"出了"}],tip:"「생각보다」比想象；비가 나오다 费用产生。",source:"checked"},
+  "보다":{ko:"주말에 친구와 재미있는 영화를 봤어요.",cn:"周末和朋友看了有趣的电影。",parts:[{w:"주말에",role:"T",roleCn:"时间",mean:"周末"},{w:"친구와",role:"O",roleCn:"宾语",mean:"朋友"},{w:"재미있는",role:"M",roleCn:"修饰",mean:"有趣的"},{w:"영화를",role:"O",roleCn:"宾语",mean:"电影"},{w:"봤어요",role:"V",roleCn:"谓语",mean:"看了"}],tip:"「재미있는」有趣的；보다 过去봤어요。",source:"checked"},
+  "복습하다":{ko:"오늘 배운 내용을 복습했어요.",cn:"复习了今天学的内容。",parts:[{w:"오늘",role:"T",roleCn:"时间",mean:"今天"},{w:"내용을",role:"O",roleCn:"宾语",mean:"学的内容"},{w:"복습했어요",role:"V",roleCn:"谓语",mean:"复习了"}],tip:"「복습하다」复习；내용 内容。",source:"checked"},
+  "봄":{ko:"봄이 되면 날씨가 따뜻해져요.",cn:"到了春天天气就变暖了。",parts:[{w:"봄이",role:"T",roleCn:"时间",mean:"春天"},{w:"되면",role:"V",roleCn:"谓语",mean:"到"},{w:"날씨가",role:"S",roleCn:"主语",mean:"天气"},{w:"따뜻해져요",role:"V",roleCn:"谓语",mean:"变暖"}],tip:"「따뜻해지다」变暖；-(으)면 条件。",source:"checked"},
+  "봉투":{ko:"선물을 예쁜 봉투에 넣어 주세요.",cn:"请把礼物装进漂亮的袋子里。",parts:[{w:"선물을",role:"O",roleCn:"宾语",mean:"礼物"},{w:"예쁜",role:"M",roleCn:"修饰",mean:"漂亮的"},{w:"봉투에",role:"L",roleCn:"地点",mean:"袋子"},{w:"주세요",role:"V",roleCn:"谓语",mean:"请装"}],tip:"「-어 주세요」请求。",source:"checked"},
+  "부끄럽다":{ko:"칭찬을 들으니까 부끄러웠어요.",cn:"听到夸奖很害羞。",parts:[{w:"칭찬을",role:"O",roleCn:"宾语",mean:"夸奖"},{w:"들으니까",role:"M",roleCn:"修饰",mean:"一听"},{w:"부끄러웠어요",role:"V",roleCn:"谓语",mean:"害羞了"}],tip:"「부끄럽다」害羞；-니까 表触发。",source:"checked"},
+  "부모님":{ko:"부모님을 생각하고 있어요.",cn:"我在想念父母。",parts:[{w:"부모님을",role:"O",roleCn:"宾语",mean:"父母"},{w:"있어요",role:"V",roleCn:"谓语",mean:"在想念"}],tip:"「생각하다」想念；부모님 本身已含敬意。",source:"checked"},
+  "부탁하다":{ko:"친구에게 사진을 찍어 달라고 부탁했어요.",cn:"拜托朋友帮我拍照。",parts:[{w:"친구에게",role:"O",roleCn:"宾语",mean:"朋友"},{w:"사진을",role:"O",roleCn:"宾语",mean:"照片"},{w:"달라고",role:"V",roleCn:"谓语",mean:"拍给"},{w:"부탁했어요",role:"V",roleCn:"谓语",mean:"拜托了"}],tip:"「-아 달라고 부탁하다」请求帮忙做。",source:"checked"},
+  "분":{ko:"십 분만 기다려 주세요.",cn:"请只等十分钟。",parts:[{w:"십",role:"O",roleCn:"宾语",mean:"十"},{w:"분만",role:"M",roleCn:"修饰",mean:"只"},{w:"주세요",role:"V",roleCn:"谓语",mean:"请等"}],tip:"「-만」只；分钟用「분」。",source:"checked"},
+  "불고기":{ko:"불고기를 먹고 싶습니다.",cn:"我想吃烤肉。",parts:[{w:"불고기를",role:"O",roleCn:"宾语",mean:"烤肉"},{w:"싶습니다",role:"V",roleCn:"谓语",mean:"想吃"}],tip:"「-고 싶다」想做某事；습니다 正式敬语。",source:"checked"},
+  "붓다":{ko:"컵에 물을 가득 부었어요.",cn:"往杯子里倒满了水。",parts:[{w:"컵에",role:"L",roleCn:"地点",mean:"杯子"},{w:"물을",role:"O",roleCn:"宾语",mean:"水"},{w:"가득",role:"M",roleCn:"修饰",mean:"满满地"},{w:"부었어요",role:"V",roleCn:"谓语",mean:"倒了"}],tip:"「붓다」倒；「가득」满满地。",source:"checked"},
+  "비":{ko:"비가 오기 전에 우산을 챙겼어요.",cn:"下雨前带了伞。",parts:[{w:"비가",role:"S",roleCn:"主语",mean:"雨"},{w:"오기",role:"T",roleCn:"时间",mean:"下"},{w:"전에",role:"M",roleCn:"修饰",mean:"之前"},{w:"우산을",role:"O",roleCn:"宾语",mean:"伞"},{w:"챙겼어요",role:"V",roleCn:"谓语",mean:"带了"}],tip:"「-(으)기 전에」在…之前；챙기다 携带。",source:"checked"},
+  "비누":{ko:"비누로 손을 깨끗이 씻었어요.",cn:"用肥皂把手洗干净了。",parts:[{w:"비누로",role:"C",roleCn:"补语",mean:"肥皂"},{w:"손을",role:"O",roleCn:"宾语",mean:"手"},{w:"깨끗이",role:"M",roleCn:"修饰",mean:"干净地"},{w:"씻었어요",role:"V",roleCn:"谓语",mean:"洗了"}],tip:"「깨끗이」干净地；비누로 用肥皂。",source:"checked"},
+  "비빔밥":{ko:"비빔밥을 골고루 비벼서 먹었어요.",cn:"把拌饭均匀拌开吃了。",parts:[{w:"비빔밥을",role:"O",roleCn:"宾语",mean:"拌饭"},{w:"골고루",role:"M",roleCn:"修饰",mean:"均匀地"},{w:"비벼서",role:"V",roleCn:"谓语",mean:"拌"},{w:"먹었어요",role:"V",roleCn:"谓语",mean:"吃了"}],tip:"「비비다」搅拌；골고루 均匀地。",source:"checked"},
+  "비싸다":{ko:"이 명품가방은 너무 비싸서 사지 못했어요.",cn:"这个名牌包太贵没买成。",parts:[{w:"이",role:"M",roleCn:"修饰",mean:"这"},{w:"명품가방은",role:"S",roleCn:"主语",mean:"名牌包"},{w:"너무",role:"M",roleCn:"修饰",mean:"太"},{w:"비싸서",role:"V",roleCn:"谓语",mean:"贵"},{w:"사지",role:"M",roleCn:"修饰",mean:"买"},{w:"못했어요",role:"V",roleCn:"谓语",mean:"没能"}],tip:"「비싸다」贵；「-아서」原因；「못 V」没能。",source:"checked"},
+  "비행기":{ko:"비행기를 타고 제주도에 가요.",cn:"坐飞机去济州岛。",parts:[{w:"비행기를",role:"O",roleCn:"宾语",mean:"飞机"},{w:"타고",role:"M",roleCn:"修饰",mean:"乘坐"},{w:"제주도에",role:"L",roleCn:"地点",mean:"济州岛"},{w:"가요",role:"V",roleCn:"谓语",mean:"去"}],tip:"「타고 가다」乘去。",source:"checked"},
+  "빌리다":{ko:"도서관에서 책을 두 권을 빌렸어요.",cn:"在图书馆借了两本书。",parts:[{w:"도서관에서",role:"L",roleCn:"地点",mean:"图书馆"},{w:"책을",role:"O",roleCn:"宾语",mean:"书"},{w:"두",role:"O",roleCn:"宾语",mean:"两"},{w:"권을",role:"O",roleCn:"宾语",mean:"本"},{w:"빌렸어요",role:"V",roleCn:"谓语",mean:"借了"}],tip:"「빌리다」借入；量词권。",source:"checked"},
+  "빗물":{ko:"빗물에 젖어서 옷이 다 축축해졌어요.",cn:"被雨水淋湿衣服全湿透了。",parts:[{w:"빗물에",role:"S",roleCn:"主语",mean:"雨水"},{w:"젖어서",role:"V",roleCn:"谓语",mean:"淋湿"},{w:"옷이",role:"S",roleCn:"主语",mean:"衣服"},{w:"다",role:"M",roleCn:"修饰",mean:"全"},{w:"축축해졌어요",role:"V",roleCn:"谓语",mean:"湿漉漉了"}],tip:"「젖다」湿；「축축해지다」变湿漉漉。",source:"checked"},
+  "빠르다":{ko:"기차가 생각보다 빨라서 일찍 도착했어요.",cn:"火车比想象快所以早到了。",parts:[{w:"기차가",role:"S",roleCn:"主语",mean:"火车"},{w:"생각보다",role:"M",roleCn:"修饰",mean:"比想象"},{w:"빨라서",role:"V",roleCn:"谓语",mean:"快"},{w:"일찍",role:"M",roleCn:"修饰",mean:"早"},{w:"도착했어요",role:"V",roleCn:"谓语",mean:"到了"}],tip:"「빠르다」快；르不规则빨라서。",source:"checked"},
+  "빨래":{ko:"주말에 빨래를 했어요.",cn:"周末洗了衣服。",parts:[{w:"주말에",role:"T",roleCn:"时间",mean:"周末"},{w:"빨래를",role:"O",roleCn:"宾语",mean:"衣服"},{w:"했어요",role:"V",roleCn:"谓语",mean:"洗了"}],tip:"「빨래하다」洗衣服。",source:"checked"},
+  "빨리":{ko:"빨리 안 가면 늦을 거예요.",cn:"不快点走要迟到了。",parts:[{w:"빨리",role:"M",roleCn:"修饰",mean:"快点"},{w:"안",role:"M",roleCn:"修饰",mean:"不"},{w:"가면",role:"V",roleCn:"谓语",mean:"走"},{w:"거예요",role:"V",roleCn:"谓语",mean:"要迟到"}],tip:"「빨리」快点；「-(으)ㄹ 거예요」将要。",source:"checked"},
+  "빵":{ko:"아침에 갓 구운 빵을 먹었어요.",cn:"早上吃了刚烤好的面包。",parts:[{w:"아침에",role:"T",roleCn:"时间",mean:"早上"},{w:"갓",role:"M",roleCn:"修饰",mean:"刚"},{w:"구운",role:"M",roleCn:"修饰",mean:"烤的"},{w:"빵을",role:"O",roleCn:"宾语",mean:"面包"},{w:"먹었어요",role:"V",roleCn:"谓语",mean:"吃了"}],tip:"「갓 구운」刚烤的；过去定语 구운 修饰빵。",source:"checked"},
+  "사과":{ko:"저는 어제 시장에서 사과를 샀는데 생각보다 달아서 또 샀어요.",cn:"我昨天在市场买了苹果，没想到很甜就又买了。",parts:[{w:"저는",role:"S",roleCn:"主语",mean:"我"},{w:"어제",role:"T",roleCn:"时间",mean:"昨天"},{w:"시장에서",role:"L",roleCn:"地点",mean:"市场"},{w:"사과를",role:"O",roleCn:"宾语",mean:"苹果"},{w:"샀는데",role:"V",roleCn:"谓语",mean:"买了"},{w:"생각보다",role:"M",roleCn:"修饰",mean:"比想象"},{w:"달아서",role:"V",roleCn:"谓语",mean:"甜"},{w:"또",role:"M",roleCn:"修饰",mean:"又"},{w:"샀어요",role:"V",roleCn:"谓语",mean:"买了"}],tip:"高级句：-는데 提供背景；-아서 表原因「因为甜」。",source:"checked"},
+  "사다":{ko:"백화점에서 새 가방을 샀어요.",cn:"在百货店买了新包。",parts:[{w:"백화점에서",role:"L",roleCn:"地点",mean:"百货店"},{w:"새",role:"M",roleCn:"修饰",mean:"新的"},{w:"가방을",role:"O",roleCn:"宾语",mean:"包"},{w:"샀어요",role:"V",roleCn:"谓语",mean:"买了"}],tip:"「사다」买；过去时샀어요。",source:"checked"},
+  "사람":{ko:"저는 성격이 좋은 사람을 찾고 있어요.",cn:"我在找一个性格好的人。",parts:[{w:"저는",role:"S",roleCn:"主语",mean:"我"},{w:"성격이",role:"M",roleCn:"修饰",mean:"性格"},{w:"좋은",role:"M",roleCn:"修饰",mean:"好的"},{w:"사람을",role:"O",roleCn:"宾语",mean:"人"},{w:"있어요",role:"V",roleCn:"谓语",mean:"在找"}],tip:"句型：定语从句「성격이 좋은」修饰사람；찾고 있어요 是 찾다 的现在进行时。",source:"checked"},
+  "사랑하다":{ko:"부모님을 사랑하고 존경해요.",cn:"爱父母也尊敬他们。",parts:[{w:"부모님을",role:"O",roleCn:"宾语",mean:"父母"},{w:"사랑하고",role:"V",roleCn:"谓语",mean:"爱"},{w:"존경해요",role:"V",roleCn:"谓语",mean:"尊敬"}],tip:"「사랑하다」爱；「존경하다」尊敬。",source:"checked"},
+  "사장님":{ko:"사장님이 회의를 하세요.",cn:"老板在开会。",parts:[{w:"사장님이",role:"S",roleCn:"主语",mean:"老板"},{w:"회의를",role:"O",roleCn:"宾语",mean:"会议"},{w:"하세요",role:"V",roleCn:"谓语",mean:"开"}],tip:"「회의를 하다」开会；사장님 含尊称。",source:"checked"},
+  "사찰":{ko:"사찰에서 템플스테이를 했어요.",cn:"在寺庙体验了寺院生活。",parts:[{w:"사찰에서",role:"L",roleCn:"地点",mean:"寺庙"},{w:"템플스테이를",role:"O",roleCn:"宾语",mean:"寺院体验"},{w:"했어요",role:"V",roleCn:"谓语",mean:"做了"}],tip:"「템플스테이」寺院寄宿体验。",source:"checked"},
+  "사촌":{ko:"사촌과 함께 놀았어요.",cn:"和堂兄弟姐妹一起玩了。",parts:[{w:"사촌과",role:"O",roleCn:"宾语",mean:"堂表兄弟姐妹"},{w:"함께",role:"M",roleCn:"修饰",mean:"一起"},{w:"놀았어요",role:"V",roleCn:"谓语",mean:"玩了"}],tip:"사촌 指堂/表兄弟姐妹。",source:"checked"},
+  "산":{ko:"주말에 산에 올라가서 경치를 봤어요.",cn:"周末爬山看了风景。",parts:[{w:"주말에",role:"T",roleCn:"时间",mean:"周末"},{w:"산에",role:"L",roleCn:"地点",mean:"山"},{w:"올라가서",role:"V",roleCn:"谓语",mean:"爬上"},{w:"경치를",role:"O",roleCn:"宾语",mean:"风景"},{w:"봤어요",role:"V",roleCn:"谓语",mean:"看了"}],tip:"「산에 오르다」登山；경치 景色。",source:"checked"},
+  "산책":{ko:"저녁 식사 후에 산책을 해요.",cn:"晚饭后散步。",parts:[{w:"식사",role:"O",roleCn:"宾语",mean:"晚饭"},{w:"후에",role:"T",roleCn:"时间",mean:"后"},{w:"산책을",role:"O",roleCn:"宾语",mean:"散步"},{w:"해요",role:"V",roleCn:"谓语",mean:"做"}],tip:"「산책을 하다」散步；「후에」之后。",source:"checked"},
+  "삼촌":{ko:"삼촌이 한국에 계세요.",cn:"叔叔在韩国。",parts:[{w:"삼촌이",role:"S",roleCn:"主语",mean:"叔叔"},{w:"한국에",role:"L",roleCn:"地点",mean:"韩国"},{w:"계세요",role:"V",roleCn:"谓语",mean:"在"}],tip:"「계시다」是 있다 的敬语，用于长辈。",source:"checked"},
+  "새벽":{ko:"새벽에 비가 왔어요.",cn:"凌晨下雨了。",parts:[{w:"새벽",role:"T",roleCn:"时间",mean:"凌晨"},{w:"비가",role:"S",roleCn:"主语",mean:"雨"},{w:"왔어요",role:"V",roleCn:"谓语",mean:"下了"}],tip:"「새벽」凌晨；비가 오다 下雨。",source:"checked"},
+  "생기다":{ko:"문제가 생겼지만 괜찮아요.",cn:"出现了问题不过没关系。",parts:[{w:"문제가",role:"S",roleCn:"主语",mean:"问题"},{w:"생겼지만",role:"V",roleCn:"谓语",mean:"出现"},{w:"괜찮아요",role:"V",roleCn:"谓语",mean:"没关系"}],tip:"「생기다」产生；「지만」转折。",source:"checked"},
+  "생선":{ko:"생선을 굽는 냄새가 좋아요.",cn:"烤鱼的味道很香。",parts:[{w:"생선을",role:"O",roleCn:"宾语",mean:"鱼"},{w:"굽는",role:"M",roleCn:"修饰",mean:"烤的"},{w:"냄새가",role:"S",roleCn:"主语",mean:"味道"},{w:"좋아요",role:"V",roleCn:"谓语",mean:"好闻"}],tip:"「굽는」现在定语修饰냄새；냄새가 좋다 好闻。",source:"checked"},
+  "생일":{ko:"생일에 친구들이 축하해 줬어요.",cn:"生日那天朋友们给我庆祝了。",parts:[{w:"생일에",role:"T",roleCn:"时间",mean:"生日"},{w:"친구들이",role:"S",roleCn:"主语",mean:"朋友们"},{w:"줬어요",role:"V",roleCn:"谓语",mean:"祝贺了"}],tip:"「축하해 주다」祝贺。",source:"checked"},
+  "서다":{ko:"버스 안에서 서서 가야 해요.",cn:"在公交里得站着。",parts:[{w:"안에서",role:"L",roleCn:"地点",mean:"公交里"},{w:"서서",role:"V",roleCn:"谓语",mean:"站着"},{w:"해요",role:"V",roleCn:"谓语",mean:"得"}],tip:"「서서 가다」站着去；「-아야 하다」必须。",source:"checked"},
+  "서랍":{ko:"서랍에 편지를 보관해요.",cn:"把信保管在抽屉里。",parts:[{w:"서랍에",role:"L",roleCn:"地点",mean:"抽屉里"},{w:"편지를",role:"O",roleCn:"宾语",mean:"信"},{w:"보관해요",role:"V",roleCn:"谓语",mean:"保管"}],tip:"「보관하다」保管。",source:"checked"},
+  "서점":{ko:"서점에 가서 좋아하는 소설을 샀어요.",cn:"去书店买了喜欢的小说。",parts:[{w:"서점에",role:"L",roleCn:"地点",mean:"书店"},{w:"가서",role:"V",roleCn:"谓语",mean:"去"},{w:"좋아하는",role:"M",roleCn:"修饰",mean:"喜欢的"},{w:"소설을",role:"O",roleCn:"宾语",mean:"小说"},{w:"샀어요",role:"V",roleCn:"谓语",mean:"买了"}],tip:"「좋아하는」现在定语修饰소설。",source:"checked"},
+  "섞다":{ko:"재료를 골고루 섞어서 반죽을 만들었어요.",cn:"把材料均匀混合做了面团。",parts:[{w:"재료를",role:"O",roleCn:"宾语",mean:"材料"},{w:"골고루",role:"M",roleCn:"修饰",mean:"均匀地"},{w:"섞어서",role:"V",roleCn:"谓语",mean:"混合"},{w:"반죽을",role:"O",roleCn:"宾语",mean:"面团"},{w:"만들었어요",role:"V",roleCn:"谓语",mean:"做了"}],tip:"「섞다」混合；반죽 面团。",source:"checked"},
+  "선반":{ko:"선반에 책을 정리해요.",cn:"在架子上整理书。",parts:[{w:"선반에",role:"L",roleCn:"地点",mean:"架子上"},{w:"책을",role:"O",roleCn:"宾语",mean:"书"},{w:"정리해요",role:"V",roleCn:"谓语",mean:"整理"}],tip:"「정리하다」整理。",source:"checked"},
+  "선생님":{ko:"선생님께 질문을 했어요.",cn:"向老师提了问题。",parts:[{w:"선생님께",role:"S",roleCn:"主语",mean:"老师"},{w:"질문을",role:"O",roleCn:"宾语",mean:"问题"},{w:"했어요",role:"V",roleCn:"谓语",mean:"提了"}],tip:"「께」是「에게」的敬语形式，用于长辈。",source:"checked"},
+  "선택하다":{ko:"여러 색깔 중에서 파란색을 선택했어요.",cn:"在好几种颜色中选了蓝色。",parts:[{w:"여러",role:"M",roleCn:"修饰",mean:"好几"},{w:"중에서",role:"M",roleCn:"修饰",mean:"中"},{w:"파란색을",role:"O",roleCn:"宾语",mean:"蓝色"},{w:"선택했어요",role:"V",roleCn:"谓语",mean:"选了"}],tip:"「중에서」在…之中；선택하다 选择。",source:"checked"},
+  "설날":{ko:"설날에 가족과 떡국을 먹어요.",cn:"春节和家人吃年糕汤。",parts:[{w:"설날",role:"T",roleCn:"时间",mean:"春节"},{w:"가족과",role:"O",roleCn:"宾语",mean:"家人"},{w:"떡국을",role:"O",roleCn:"宾语",mean:"年糕汤"},{w:"먹어요",role:"V",roleCn:"谓语",mean:"吃"}],tip:"「떡국」年糕汤，春节习俗。",source:"checked"},
+  "설명":{ko:"규칙을 쉽게 설명해 주세요.",cn:"请简单地说明规则。",parts:[{w:"규칙을",role:"O",roleCn:"宾语",mean:"规则"},{w:"쉽게",role:"M",roleCn:"修饰",mean:"简单地"},{w:"주세요",role:"V",roleCn:"谓语",mean:"请说明"}],tip:"「설명하다」说明；쉽게 简单地。",source:"checked"},
+  "설탕":{ko:"커피에 설탕을 조금 넣어요.",cn:"咖啡里放一点糖。",parts:[{w:"커피에",role:"L",roleCn:"地点",mean:"咖啡里"},{w:"설탕을",role:"O",roleCn:"宾语",mean:"糖"},{w:"조금",role:"M",roleCn:"修饰",mean:"一点"},{w:"넣어요",role:"V",roleCn:"谓语",mean:"放"}],tip:"「에」表示放入的地点；조금 一点儿。",source:"checked"},
+  "성공":{ko:"많은 노력 끝에 드디어 성공했어요.",cn:"许多努力之后终于成功了。",parts:[{w:"많은",role:"M",roleCn:"修饰",mean:"许多"},{w:"끝에",role:"M",roleCn:"修饰",mean:"之后"},{w:"드디어",role:"M",roleCn:"修饰",mean:"终于"},{w:"성공했어요",role:"V",roleCn:"谓语",mean:"成功了"}],tip:"「성공하다」成功；드디어 终于。",source:"checked"},
+  "세다":{ko:"돈을 세어 보니 십 만 원이 있었어요.",cn:"数了数钱有十万韩元。",parts:[{w:"돈을",role:"O",roleCn:"宾语",mean:"钱"},{w:"보니",role:"M",roleCn:"修饰",mean:"一数"},{w:"십",role:"O",roleCn:"宾语",mean:"十"},{w:"만",role:"O",roleCn:"宾语",mean:"万"},{w:"원이",role:"S",roleCn:"主语",mean:"元"},{w:"있었어요",role:"V",roleCn:"谓语",mean:"有"}],tip:"「세어 보다」数一数；「만」万。",source:"checked"},
+  "세차장":{ko:"세차장에서 차를 씻었어요.",cn:"在洗车场洗了车。",parts:[{w:"세차장에서",role:"L",roleCn:"地点",mean:"洗车场"},{w:"차를",role:"O",roleCn:"宾语",mean:"车"},{w:"씻었어요",role:"V",roleCn:"谓语",mean:"洗了"}],tip:"「씻다」清洗。",source:"checked"},
+  "세탁기":{ko:"세탁기로 빨래를 돌렸어요.",cn:"用洗衣机洗了衣服。",parts:[{w:"세탁기로",role:"C",roleCn:"补语",mean:"洗衣机"},{w:"빨래를",role:"O",roleCn:"宾语",mean:"衣服"},{w:"돌렸어요",role:"V",roleCn:"谓语",mean:"转洗了"}],tip:"「돌리다」转动（洗衣机）。",source:"checked"},
+  "소금":{ko:"국에 소금을 조금 넣으세요.",cn:"请在汤里放点盐。",parts:[{w:"국에",role:"L",roleCn:"地点",mean:"汤里"},{w:"소금을",role:"O",roleCn:"宾语",mean:"盐"},{w:"조금",role:"M",roleCn:"修饰",mean:"稍微"},{w:"넣으세요",role:"V",roleCn:"谓语",mean:"请放"}],tip:"「넣으세요」是 넣다 的敬语命令。",source:"checked"},
+  "소파":{ko:"소파에 앉아서 텔레비전을 봐요.",cn:"坐在沙发上看电视。",parts:[{w:"소파에",role:"L",roleCn:"地点",mean:"沙发上"},{w:"앉아서",role:"V",roleCn:"谓语",mean:"坐"},{w:"텔레비전을",role:"O",roleCn:"宾语",mean:"电视"},{w:"봐요",role:"V",roleCn:"谓语",mean:"看"}],tip:"「-아서」连接动作。",source:"checked"},
+  "소포":{ko:"소포를 우체국에서 보냈어요.",cn:"在邮局寄了包裹。",parts:[{w:"소포를",role:"O",roleCn:"宾语",mean:"包裹"},{w:"우체국에서",role:"L",roleCn:"地点",mean:"邮局"},{w:"보냈어요",role:"V",roleCn:"谓语",mean:"寄了"}],tip:"「보내다」寄送。",source:"checked"},
+  "손":{ko:"밥을 먹기 전에 손을 씻어요.",cn:"吃饭前洗手。",parts:[{w:"밥을",role:"O",roleCn:"宾语",mean:"饭"},{w:"먹기",role:"T",roleCn:"时间",mean:"吃"},{w:"전에",role:"M",roleCn:"修饰",mean:"之前"},{w:"손을",role:"O",roleCn:"宾语",mean:"手"},{w:"씻어요",role:"V",roleCn:"谓语",mean:"洗"}],tip:"「-(으)기 전에」在…之前。",source:"checked"},
+  "손님":{ko:"손님이 오셨어요.",cn:"客人来了。",parts:[{w:"손님이",role:"S",roleCn:"主语",mean:"客人"},{w:"오셨어요",role:"V",roleCn:"谓语",mean:"来了"}],tip:"「오셨어요」含尊敬语尾 시。",source:"checked"},
+  "수건":{ko:"손을 씻고 수건으로 닦았어요.",cn:"洗完手用毛巾擦干。",parts:[{w:"손을",role:"O",roleCn:"宾语",mean:"手"},{w:"씻고",role:"M",roleCn:"修饰",mean:"洗完"},{w:"수건으로",role:"C",roleCn:"补语",mean:"毛巾"},{w:"닦았어요",role:"V",roleCn:"谓语",mean:"擦了"}],tip:"「-고」动作先后；닦다 擦。",source:"checked"},
+  "수도":{ko:"수도꼭지를 잠그는 걸 잊었어요.",cn:"忘了关水龙头。",parts:[{w:"수도꼭지를",role:"O",roleCn:"宾语",mean:"水龙头"},{w:"잠그는",role:"O",roleCn:"宾语",mean:"关"},{w:"걸",role:"M",roleCn:"修饰",mean:"这件事"},{w:"잊었어요",role:"V",roleCn:"谓语",mean:"忘了"}],tip:"「잠그다」拧紧、关闭。",source:"checked"},
+  "수술":{ko:"수술을 무사히 마쳤어요.",cn:"手术顺利完成了。",parts:[{w:"수술을",role:"O",roleCn:"宾语",mean:"手术"},{w:"무사히",role:"M",roleCn:"修饰",mean:"顺利地"},{w:"마쳤어요",role:"V",roleCn:"谓语",mean:"完成了"}],tip:"「수술을 하다/받다」做手术；무사히 平安地。",source:"checked"},
+  "수영":{ko:"수영을 배운 지 3개월이 됐어요.",cn:"学游泳已经三个月了。",parts:[{w:"수영을",role:"O",roleCn:"宾语",mean:"游泳"},{w:"배운",role:"O",roleCn:"宾语",mean:"学"},{w:"지",role:"M",roleCn:"修饰",mean:"以来"},{w:"3개월이",role:"S",roleCn:"主语",mean:"三个月"},{w:"됐어요",role:"V",roleCn:"谓语",mean:"了"}],tip:"「-은 지 …되다」做…已有多久。",source:"checked"},
+  "숟가락":{ko:"숟가락으로 국을 먹어요.",cn:"用勺子喝汤。",parts:[{w:"숟가락으로",role:"C",roleCn:"补语",mean:"勺子"},{w:"국을",role:"O",roleCn:"宾语",mean:"汤"},{w:"먹어요",role:"V",roleCn:"谓语",mean:"喝"}],tip:"「(으)로」表示工具。",source:"checked"},
+  "술":{ko:"어제 술을 조금 마셔서 오늘 머리가 아파요.",cn:"昨天喝了点酒，今天头疼。",parts:[{w:"어제",role:"T",roleCn:"时间",mean:"昨天"},{w:"술을",role:"O",roleCn:"宾语",mean:"酒"},{w:"조금",role:"M",roleCn:"修饰",mean:"一点"},{w:"마셔서",role:"V",roleCn:"谓语",mean:"喝了"},{w:"오늘",role:"T",roleCn:"时间",mean:"今天"},{w:"머리가",role:"S",roleCn:"主语",mean:"头"},{w:"아파요",role:"V",roleCn:"谓语",mean:"疼"}],tip:"「-아서」表示原因。",source:"checked"},
+  "쉬다":{ko:"일이 많아서 주말에 푹 쉬고 싶어요.",cn:"工作多所以周末想好好休息。",parts:[{w:"일이",role:"S",roleCn:"主语",mean:"工作"},{w:"많아서",role:"V",roleCn:"谓语",mean:"多"},{w:"주말에",role:"T",roleCn:"时间",mean:"周末"},{w:"푹",role:"M",roleCn:"修饰",mean:"好好"},{w:"싶어요",role:"V",roleCn:"谓语",mean:"想休息"}],tip:"「푹 쉬다」好好休息。",source:"checked"},
+  "쉽다":{ko:"이 문제는 생각보다 쉬워서 금방 풀었어요.",cn:"这道题比想象的简单很快就解开了。",parts:[{w:"이",role:"M",roleCn:"修饰",mean:"这道"},{w:"문제는",role:"S",roleCn:"主语",mean:"题"},{w:"생각보다",role:"M",roleCn:"修饰",mean:"比想象"},{w:"쉬워서",role:"V",roleCn:"谓语",mean:"容易"},{w:"금방",role:"M",roleCn:"修饰",mean:"很快"},{w:"풀었어요",role:"V",roleCn:"谓语",mean:"解了"}],tip:"「금방」马上；쉽다→쉬워서。",source:"checked"},
+  "슬프다":{ko:"영화의 마지막이 슬퍼서 울었어요.",cn:"电影结局悲伤所以哭了。",parts:[{w:"영화의",role:"S",roleCn:"主语",mean:"电影的"},{w:"마지막이",role:"S",roleCn:"主语",mean:"结局"},{w:"슬퍼서",role:"V",roleCn:"谓语",mean:"悲伤"},{w:"울었어요",role:"V",roleCn:"谓语",mean:"哭了"}],tip:"「슬프다」悲伤；ㅡ不规则슬퍼서。",source:"checked"},
+  "습도":{ko:"오늘 습도가 높아서 많이 덥게 느껴져요.",cn:"今天湿度高所以感觉很热。",parts:[{w:"오늘",role:"T",roleCn:"时间",mean:"今天"},{w:"습도가",role:"S",roleCn:"主语",mean:"湿度"},{w:"높아서",role:"V",roleCn:"谓语",mean:"高"},{w:"많이",role:"M",roleCn:"修饰",mean:"很"},{w:"느껴져요",role:"V",roleCn:"谓语",mean:"感觉热"}],tip:"「느껴지다」被感觉到；-아서 原因。",source:"checked"},
+  "승용차":{ko:"승용차로 가족과 여행을 갔어요.",cn:"开轿车和家人去旅行了。",parts:[{w:"승용차로",role:"C",roleCn:"补语",mean:"轿车"},{w:"가족과",role:"O",roleCn:"宾语",mean:"家人"},{w:"여행을",role:"O",roleCn:"宾语",mean:"旅行"},{w:"갔어요",role:"V",roleCn:"谓语",mean:"去了"}],tip:"「승용차」轿车；(으)로 表工具。",source:"checked"},
+  "시":{ko:"지금 몇 시예요?",cn:"现在几点？",parts:[{w:"지금",role:"T",roleCn:"时间",mean:"现在"},{w:"몇",role:"O",roleCn:"宾语",mean:"几"},{w:"시예요",role:"V",roleCn:"谓语",mean:"点"}],tip:"问时间用「몇 시예요?」。",source:"checked"},
+  "시간":{ko:"시간이 없어서 빨리 가야 해요.",cn:"没有时间了所以得快走。",parts:[{w:"시간이",role:"S",roleCn:"主语",mean:"时间"},{w:"없어서",role:"V",roleCn:"谓语",mean:"没有"},{w:"빨리",role:"M",roleCn:"修饰",mean:"快"},{w:"해요",role:"V",roleCn:"谓语",mean:"得走"}],tip:"「-아야 하다」必须；「빨리」快点。",source:"checked"},
+  "시계":{ko:"시계를 보니까 이미 늦었어요.",cn:"一看表已经迟到了。",parts:[{w:"시계를",role:"O",roleCn:"宾语",mean:"表"},{w:"보니까",role:"M",roleCn:"修饰",mean:"一看"},{w:"이미",role:"M",roleCn:"修饰",mean:"已经"},{w:"늦었어요",role:"V",roleCn:"谓语",mean:"迟到了"}],tip:"「-니까」表示发现、依据。",source:"checked"},
+  "시작":{ko:"새 프로젝트가 오늘 시작됐어요.",cn:"新项目今天开始了。",parts:[{w:"새",role:"M",roleCn:"修饰",mean:"新的"},{w:"프로젝트가",role:"S",roleCn:"主语",mean:"项目"},{w:"오늘",role:"T",roleCn:"时间",mean:"今天"},{w:"시작됐어요",role:"V",roleCn:"谓语",mean:"开始了"}],tip:"「시작되다」开始；프로젝트 项目。",source:"checked"},
+  "시장":{ko:"시장에서 싱싱한 과일을 샀어요.",cn:"在市场买了新鲜的水果。",parts:[{w:"시장에서",role:"L",roleCn:"地点",mean:"市场"},{w:"싱싱한",role:"M",roleCn:"修饰",mean:"新鲜的"},{w:"과일을",role:"O",roleCn:"宾语",mean:"水果"},{w:"샀어요",role:"V",roleCn:"谓语",mean:"买了"}],tip:"「싱싱하다」新鲜；过去定语싱싱한。",source:"checked"},
+  "시험보다":{ko:"다음 주 한국어 시험을 봐요.",cn:"下周考韩语。",parts:[{w:"주",role:"T",roleCn:"时间",mean:"下周"},{w:"시험을",role:"O",roleCn:"宾语",mean:"韩语考试"},{w:"봐요",role:"V",roleCn:"谓语",mean:"考"}],tip:"「시험을 보다」考试。",source:"checked"},
+  "식당":{ko:"이 식당은 음식이 맛있기로 소문이 났어요.",cn:"这家餐厅以菜好吃而出名。",parts:[{w:"이",role:"M",roleCn:"修饰",mean:"这家"},{w:"식당은",role:"S",roleCn:"主语",mean:"餐厅"},{w:"음식이",role:"S",roleCn:"主语",mean:"菜"},{w:"맛있기로",role:"O",roleCn:"宾语",mean:"好吃"},{w:"소문이",role:"S",roleCn:"主语",mean:"名声"},{w:"났어요",role:"V",roleCn:"谓语",mean:"传开了"}],tip:"高级句：「-기로 소문이 나다」因…而出名。",source:"checked"},
+  "식사":{ko:"식사 하셨어요?",cn:"您用餐了吗？",parts:[{w:"하셨어요",role:"V",roleCn:"谓语",mean:"用餐了吗"}],tip:"「식사하다」用餐；하셨어요 是敬语疑问。",source:"checked"},
+  "신발":{ko:"신발을 신고 밖에 나갔어요.",cn:"穿上鞋出门了。",parts:[{w:"신발을",role:"O",roleCn:"宾语",mean:"鞋"},{w:"신고",role:"M",roleCn:"修饰",mean:"穿上"},{w:"밖에",role:"L",roleCn:"地点",mean:"外面"},{w:"나갔어요",role:"V",roleCn:"谓语",mean:"出去了"}],tip:"「신다」穿鞋；「나가다」出去。",source:"checked"},
+  "신청하다":{ko:"비자를 신청했어요.",cn:"申请了签证。",parts:[{w:"비자를",role:"O",roleCn:"宾语",mean:"签证"},{w:"신청했어요",role:"V",roleCn:"谓语",mean:"申请了"}],tip:"「신청하다」申请；비자 签证。",source:"checked"},
+  "신호등":{ko:"신호등이 빨간불로 바뀌었어요.",cn:"红绿灯变成了红灯。",parts:[{w:"신호등이",role:"S",roleCn:"主语",mean:"红绿灯"},{w:"빨간불로",role:"C",roleCn:"补语",mean:"红灯"},{w:"바뀌었어요",role:"V",roleCn:"谓语",mean:"变了"}],tip:"「바뀌다」变化；「빨간불」红灯。",source:"checked"},
+  "실력":{ko:"한국어 실력이 많이 늘었어요.",cn:"韩语实力提高了很多。",parts:[{w:"한국어",role:"O",roleCn:"宾语",mean:"韩语"},{w:"실력이",role:"S",roleCn:"主语",mean:"实力"},{w:"많이",role:"M",roleCn:"修饰",mean:"很"},{w:"늘었어요",role:"V",roleCn:"谓语",mean:"提高了"}],tip:"「실력이 늘다」实力增长。",source:"checked"},
+  "실패":{ko:"실패해도 포기하지 않을 거예요.",cn:"即使失败也不会放弃。",parts:[{w:"실패해도",role:"V",roleCn:"谓语",mean:"失败"},{w:"포기하지",role:"M",roleCn:"修饰",mean:"不放弃"},{w:"거예요",role:"V",roleCn:"谓语",mean:"不会"}],tip:"「실패하다」失败；「포기하다」放弃。",source:"checked"},
+  "싫어하다":{ko:"저는 매운 음식을 싫어해요.",cn:"我讨厌辣的食物。",parts:[{w:"저는",role:"S",roleCn:"主语",mean:"我"},{w:"매운",role:"M",roleCn:"修饰",mean:"辣的"},{w:"음식을",role:"O",roleCn:"宾语",mean:"食物"},{w:"싫어해요",role:"V",roleCn:"谓语",mean:"讨厌"}],tip:"「싫어하다」讨厌；形容词定语매운。",source:"checked"},
+  "싸다":{ko:"동네 시장의 물건은 싸고 신선해요.",cn:"小区市场的东西便宜又新鲜。",parts:[{w:"동네",role:"M",roleCn:"修饰",mean:"小区"},{w:"시장의",role:"S",roleCn:"主语",mean:"市场的"},{w:"물건은",role:"S",roleCn:"主语",mean:"东西"},{w:"싸고",role:"M",roleCn:"修饰",mean:"便宜"},{w:"신선해요",role:"V",roleCn:"谓语",mean:"新鲜"}],tip:"「싸다」便宜；-고 并列。",source:"checked"},
+  "쌀":{ko:"쌀로 밥을 짓어요.",cn:"用米煮饭。",parts:[{w:"쌀로",role:"C",roleCn:"补语",mean:"米"},{w:"밥을",role:"O",roleCn:"宾语",mean:"饭"},{w:"짓어요",role:"V",roleCn:"谓语",mean:"煮"}],tip:"「쌀로」用米；「밥을 짓다」煮饭。",source:"checked"},
+  "쌓이다":{ko:"책상 위에 책이 수북이 쌓여 있어요.",cn:"桌上书堆得高高的。",parts:[{w:"위에",role:"L",roleCn:"地点",mean:"桌上"},{w:"책이",role:"S",roleCn:"主语",mean:"书"},{w:"수북이",role:"M",roleCn:"修饰",mean:"堆积地"},{w:"있어요",role:"V",roleCn:"谓语",mean:"堆着"}],tip:"「쌓이다」堆积（自动词）；「수북이」堆积貌。",source:"checked"},
+  "쓰다":{ko:"매일 일기를 쓰는 습관이 좋아요.",cn:"每天写日记的习惯很好。",parts:[{w:"매일",role:"T",roleCn:"时间",mean:"每天"},{w:"일기를",role:"O",roleCn:"宾语",mean:"日记"},{w:"쓰는",role:"O",roleCn:"宾语",mean:"写"},{w:"습관이",role:"S",roleCn:"主语",mean:"习惯"},{w:"좋아요",role:"V",roleCn:"谓语",mean:"好"}],tip:"「일기를 쓰다」写日记；「-는 습관」…的习惯。",source:"checked"},
+  "쓰레기":{ko:"쓰레기를 쓰레기통에 버렸어요.",cn:"把垃圾扔进了垃圾桶。",parts:[{w:"쓰레기를",role:"O",roleCn:"宾语",mean:"垃圾"},{w:"쓰레기통에",role:"L",roleCn:"地点",mean:"垃圾桶"},{w:"버렸어요",role:"V",roleCn:"谓语",mean:"扔了"}],tip:"「버리다」扔掉。",source:"checked"},
+  "아니요":{ko:"아니요, 괜찮아요.",cn:"不，没关系。",parts:[{w:"괜찮아요",role:"V",roleCn:"谓语",mean:"没关系"}],tip:"「아니요」否定回答；「괜찮다」没关系。",source:"checked"},
+  "아들":{ko:"우리 아들은 대학에 다녀요.",cn:"我儿子在上大学。",parts:[{w:"우리",role:"M",roleCn:"修饰",mean:"我们的"},{w:"아들은",role:"S",roleCn:"主语",mean:"儿子"},{w:"대학에",role:"L",roleCn:"地点",mean:"大学"},{w:"다녀요",role:"V",roleCn:"谓语",mean:"上学"}],tip:"「대학에 다니다」= 上大学。",source:"checked"},
+  "아름답다":{ko:"노을이 아름다워서 사진을 찍었어요.",cn:"晚霞很美所以拍了照片。",parts:[{w:"노을이",role:"S",roleCn:"主语",mean:"晚霞"},{w:"아름다워서",role:"V",roleCn:"谓语",mean:"美"},{w:"사진을",role:"O",roleCn:"宾语",mean:"照片"},{w:"찍었어요",role:"V",roleCn:"谓语",mean:"拍了"}],tip:"「아름답다」美丽；ㅂ不规则아름다워서。",source:"checked"},
+  "아버지":{ko:"아버지가 퇴근하셨어요.",cn:"父亲下班了。",parts:[{w:"아버지가",role:"S",roleCn:"主语",mean:"父亲"},{w:"퇴근하셨어요",role:"V",roleCn:"谓语",mean:"下班了"}],tip:"「퇴근하다」下班；셨어요 体现对长辈的尊敬。",source:"checked"},
+  "아빠":{ko:"아빠는 아침에 신문을 읽어요.",cn:"爸爸早上看报纸。",parts:[{w:"아빠는",role:"S",roleCn:"主语",mean:"爸爸"},{w:"아침에",role:"T",roleCn:"时间",mean:"早上"},{w:"신문을",role:"O",roleCn:"宾语",mean:"报纸"},{w:"읽어요",role:"V",roleCn:"谓语",mean:"读"}],tip:"「신문을 읽다」是固定搭配「看报纸」。",source:"checked"},
+  "아이":{ko:"아이가 공원에서 놀고 있어요.",cn:"孩子正在公园里玩。",parts:[{w:"아이가",role:"S",roleCn:"主语",mean:"孩子"},{w:"공원에서",role:"L",roleCn:"地点",mean:"公园"},{w:"있어요",role:"V",roleCn:"谓语",mean:"在玩"}],tip:"놀고 있어요 = 놀다 + 고 있는 现在进行时。",source:"checked"},
+  "아이스크림":{ko:"더운 여름에 아이스크림을 먹으면 시원해요.",cn:"炎热的夏天吃冰淇淋很爽。",parts:[{w:"더운",role:"M",roleCn:"修饰",mean:"热的"},{w:"여름에",role:"T",roleCn:"时间",mean:"夏天"},{w:"아이스크림을",role:"O",roleCn:"宾语",mean:"冰淇淋"},{w:"먹으면",role:"V",roleCn:"谓语",mean:"吃的话"},{w:"시원해요",role:"V",roleCn:"谓语",mean:"凉爽"}],tip:"「-(으)면」表示条件「如果…」。",source:"checked"},
+  "아주":{ko:"이 음식은 아주 맛있어요.",cn:"这道菜非常好吃。",parts:[{w:"이",role:"M",roleCn:"修饰",mean:"这"},{w:"음식은",role:"S",roleCn:"主语",mean:"菜"},{w:"아주",role:"M",roleCn:"修饰",mean:"非常"},{w:"맛있어요",role:"V",roleCn:"谓语",mean:"好吃"}],tip:"「아주」很、非常；맛있다 好吃。",source:"checked"},
+  "아직":{ko:"아직 안 끝났어요.",cn:"还没结束。",parts:[{w:"아직",role:"M",roleCn:"修饰",mean:"还"},{w:"안",role:"M",roleCn:"修饰",mean:"没"},{w:"끝났어요",role:"V",roleCn:"谓语",mean:"结束"}],tip:"「아직 안 V」还没做。",source:"checked"},
+  "아침":{ko:"아침에 일찍 일어나서 산책해요.",cn:"早上早早起床散步。",parts:[{w:"아침에",role:"T",roleCn:"时间",mean:"早上"},{w:"일찍",role:"M",roleCn:"修饰",mean:"早"},{w:"일어나서",role:"V",roleCn:"谓语",mean:"起床"},{w:"산책해요",role:"V",roleCn:"谓语",mean:"散步"}],tip:"「-아서」动作先后。",source:"checked"},
+  "아침밥":{ko:"아침밥을 먹고 출근해요.",cn:"吃完早饭去上班。",parts:[{w:"아침밥을",role:"O",roleCn:"宾语",mean:"早饭"},{w:"먹고",role:"M",roleCn:"修饰",mean:"吃了之后"},{w:"출근해요",role:"V",roleCn:"谓语",mean:"上班"}],tip:"「-고」连接前后动作。",source:"checked"},
+  "아침일찍":{ko:"아침일찍 출발하면 안 늦어요.",cn:"一早出发就不会迟到。",parts:[{w:"아침일찍",role:"T",roleCn:"时间",mean:"一早"},{w:"출발하면",role:"V",roleCn:"谓语",mean:"出发的话"},{w:"안",role:"M",roleCn:"修饰",mean:"不"},{w:"늦어요",role:"V",roleCn:"谓语",mean:"迟到"}],tip:"「-(으)면」条件；아침일찍 一大早。",source:"checked"},
+  "아프다":{ko:"어제부터 배가 아파서 병원에 갔어요.",cn:"从昨天开始肚子疼去了医院。",parts:[{w:"어제",role:"T",roleCn:"时间",mean:"昨天"},{w:"부터",role:"M",roleCn:"修饰",mean:"起"},{w:"배가",role:"S",roleCn:"主语",mean:"肚子"},{w:"아파서",role:"V",roleCn:"谓语",mean:"疼"},{w:"병원에",role:"L",roleCn:"地点",mean:"医院"},{w:"갔어요",role:"V",roleCn:"谓语",mean:"去了"}],tip:"「아프다」疼；-아서 原因。",source:"checked"},
+  "안내하다":{ko:"직원이 손님을 좌석까지 안내했어요.",cn:"员工把客人引导到座位。",parts:[{w:"직원이",role:"S",roleCn:"主语",mean:"员工"},{w:"손님을",role:"O",roleCn:"宾语",mean:"客人"},{w:"좌석까지",role:"L",roleCn:"地点",mean:"座位"},{w:"안내했어요",role:"V",roleCn:"谓语",mean:"引导"}],tip:"「안내하다」引导；좌석 座位。",source:"checked"},
+  "안녕하세요":{ko:"안녕하세요! 만나서 반가워요.",cn:"你好！很高兴见到你。",parts:[{w:"만나서",role:"V",roleCn:"谓语",mean:"见到"},{w:"반가워요",role:"V",roleCn:"谓语",mean:"高兴"}],tip:"「안녕하세요」你好；「반갑다」高兴。",source:"checked"},
+  "안녕히":{ko:"안녕히 가세요.",cn:"请慢走。",parts:[{w:"가세요",role:"V",roleCn:"谓语",mean:"请走"}],tip:"「안녕히 가세요」对离开的人说再见。",source:"checked"},
+  "앉다":{ko:"소파에 앉아서 책을 읽고 있어요.",cn:"坐在沙发上看书。",parts:[{w:"소파에",role:"L",roleCn:"地点",mean:"沙发"},{w:"앉아서",role:"V",roleCn:"谓语",mean:"坐"},{w:"책을",role:"O",roleCn:"宾语",mean:"书"},{w:"있어요",role:"V",roleCn:"谓语",mean:"正在读"}],tip:"「앉다」坐；「-아서」连接。",source:"checked"},
+  "알다":{ko:"저는 그 사람을 잘 알아요.",cn:"我很认识那个人。",parts:[{w:"저는",role:"S",roleCn:"主语",mean:"我"},{w:"사람을",role:"O",roleCn:"宾语",mean:"那个人"},{w:"잘",role:"M",roleCn:"修饰",mean:"很"},{w:"알아요",role:"V",roleCn:"谓语",mean:"认识"}],tip:"「알다」知道、认识；「잘 알다」很了解。",source:"checked"},
+  "약":{ko:"시간마다 약을 먹어야 해요.",cn:"得按时吃药。",parts:[{w:"시간마다",role:"T",roleCn:"时间",mean:"每次"},{w:"약을",role:"O",roleCn:"宾语",mean:"药"},{w:"해요",role:"V",roleCn:"谓语",mean:"得吃"}],tip:"「-아야 하다」必须；「시간마다」每次。",source:"checked"},
+  "약국":{ko:"약국에서 감기약을 샀어요.",cn:"在药店买了感冒药。",parts:[{w:"약국에서",role:"L",roleCn:"地点",mean:"药店"},{w:"감기약을",role:"O",roleCn:"宾语",mean:"感冒药"},{w:"샀어요",role:"V",roleCn:"谓语",mean:"买了"}],tip:"「감기약」感冒药。",source:"checked"},
+  "약속하다":{ko:"내일 3시에 만나기로 약속했어요.",cn:"约好明天3点见面。",parts:[{w:"내일",role:"T",roleCn:"时间",mean:"明天"},{w:"3시에",role:"T",roleCn:"时间",mean:"3点"},{w:"만나기로",role:"V",roleCn:"谓语",mean:"见"},{w:"약속했어요",role:"V",roleCn:"谓语",mean:"约好了"}],tip:"「-기로 약속하다」约定做。",source:"checked"},
+  "어렵다":{ko:"한국어 문법이 처음에는 어렵지만 익숙해지면 쉬워요.",cn:"韩语语法一开始难，但熟悉了就简单了。",parts:[{w:"문법이",role:"S",roleCn:"主语",mean:"韩语语法"},{w:"처음에는",role:"M",roleCn:"修饰",mean:"一开始"},{w:"어렵지만",role:"V",roleCn:"谓语",mean:"难"},{w:"익숙해지면",role:"V",roleCn:"谓语",mean:"熟悉"},{w:"쉬워요",role:"V",roleCn:"谓语",mean:"容易"}],tip:"「-지만」转折；「익숙해지다」变熟练。",source:"checked"},
+  "어머니":{ko:"어머니는 요리를 잘 하세요.",cn:"母亲很会做饭。",parts:[{w:"어머니는",role:"S",roleCn:"主语",mean:"母亲"},{w:"요리를",role:"O",roleCn:"宾语",mean:"料理"},{w:"잘",role:"M",roleCn:"修饰",mean:"很"},{w:"하세요",role:"V",roleCn:"谓语",mean:"做得好"}],tip:"「잘하다」擅长；하세요 是敬语。",source:"checked"},
+  "어제":{ko:"어제 늦게까지 공부했어요.",cn:"昨天学习到很晚。",parts:[{w:"어제",role:"T",roleCn:"时间",mean:"昨天"},{w:"늦게",role:"M",roleCn:"修饰",mean:"晚"},{w:"까지",role:"M",roleCn:"修饰",mean:"直到"},{w:"공부했어요",role:"V",roleCn:"谓语",mean:"学习了"}],tip:"「늦게까지」直到很晚。",source:"checked"},
+  "어지럽다":{ko:"머리가 어지러워서 잠시 누워 있었어요.",cn:"头晕所以躺了一会儿。",parts:[{w:"머리가",role:"S",roleCn:"主语",mean:"头"},{w:"어지러워서",role:"V",roleCn:"谓语",mean:"晕"},{w:"잠시",role:"M",roleCn:"修饰",mean:"一会儿"},{w:"있었어요",role:"V",roleCn:"谓语",mean:"躺着"}],tip:"「어지럽다」头晕；-아서 原因。",source:"checked"},
+  "언니":{ko:"언니가 예쁜 옷을 입었어요.",cn:"姐姐穿了漂亮的衣服。",parts:[{w:"언니가",role:"S",roleCn:"主语",mean:"姐姐"},{w:"예쁜",role:"M",roleCn:"修饰",mean:"漂亮的"},{w:"옷을",role:"O",roleCn:"宾语",mean:"衣服"},{w:"입었어요",role:"V",roleCn:"谓语",mean:"穿了"}],tip:"女生称姐姐为언니；입었어요 是 입다 过去时。",source:"checked"},
+  "얼굴":{ko:"세수하고 얼굴에 로션을 발랐어요.",cn:"洗完脸在脸上涂了乳液。",parts:[{w:"세수하고",role:"M",roleCn:"修饰",mean:"洗完脸"},{w:"얼굴에",role:"L",roleCn:"地点",mean:"脸上"},{w:"로션을",role:"O",roleCn:"宾语",mean:"乳液"},{w:"발랐어요",role:"V",roleCn:"谓语",mean:"涂了"}],tip:"「바르다」涂抹；「세수하다」洗脸。",source:"checked"},
+  "엄마":{ko:"엄마가 맛있는 요리를 해요.",cn:"妈妈在做美味的菜。",parts:[{w:"엄마가",role:"S",roleCn:"主语",mean:"妈妈"},{w:"맛있는",role:"M",roleCn:"修饰",mean:"好吃的"},{w:"요리를",role:"O",roleCn:"宾语",mean:"料理"},{w:"해요",role:"V",roleCn:"谓语",mean:"做"}],tip:"形容词定语「맛있는」修饰요리；해요 是 하다 的现在时。",source:"checked"},
+  "없다":{ko:"냉장고에 음식이 거의 없어요.",cn:"冰箱里几乎没食物了。",parts:[{w:"냉장고에",role:"L",roleCn:"地点",mean:"冰箱"},{w:"음식이",role:"S",roleCn:"主语",mean:"食物"},{w:"거의",role:"M",roleCn:"修饰",mean:"几乎"},{w:"없어요",role:"V",roleCn:"谓语",mean:"没有"}],tip:"「거의」几乎；없다 没有。",source:"checked"},
+  "없애다":{ko:"쓰레기를 없애기 위해 노력해요.",cn:"为了消除垃圾而努力。",parts:[{w:"쓰레기를",role:"O",roleCn:"宾语",mean:"垃圾"},{w:"위해",role:"M",roleCn:"修饰",mean:"为了"},{w:"노력해요",role:"V",roleCn:"谓语",mean:"努力"}],tip:"「-기 위해」为了；없애다 消除。",source:"checked"},
+  "여권":{ko:"여권을 잃어버려서 다시 만들었어요.",cn:"把护照弄丢了所以重新办了。",parts:[{w:"여권을",role:"O",roleCn:"宾语",mean:"护照"},{w:"잃어버려서",role:"V",roleCn:"谓语",mean:"弄丢"},{w:"다시",role:"M",roleCn:"修饰",mean:"重新"},{w:"만들었어요",role:"V",roleCn:"谓语",mean:"办了"}],tip:"「재발급」补办；-아서 原因。",source:"checked"},
+  "여기":{ko:"여기에 앉으셔도 돼요.",cn:"请坐这里。",parts:[{w:"여기에",role:"L",roleCn:"地点",mean:"这里"},{w:"앉으셔도",role:"V",roleCn:"谓语",mean:"坐"},{w:"돼요",role:"V",roleCn:"谓语",mean:"可以"}],tip:"「여기」这里；「-아도 되다」可以。",source:"checked"},
+  "여름":{ko:"여름에는 무더위가 심해서 에어컨을 켜요.",cn:"夏天酷暑严重所以开空调。",parts:[{w:"여름에는",role:"T",roleCn:"时间",mean:"夏天"},{w:"무더위가",role:"S",roleCn:"主语",mean:"酷暑"},{w:"심해서",role:"V",roleCn:"谓语",mean:"严重"},{w:"에어컨을",role:"O",roleCn:"宾语",mean:"空调"},{w:"켜요",role:"V",roleCn:"谓语",mean:"开"}],tip:"「무더위」酷暑；「에어컨을 켜다」开空调。",source:"checked"},
+  "여자":{ko:"저 여자를 아세요?",cn:"你认识那个女人吗？",parts:[{w:"저",role:"S",roleCn:"主语",mean:"我"},{w:"여자를",role:"O",roleCn:"宾语",mean:"女人"},{w:"아세요",role:"V",roleCn:"谓语",mean:"认识吗"}],tip:"「아세요?」是「알다」的敬语疑问形式。",source:"checked"},
+  "여행":{ko:"다음 달 한국으로 여행을 갈 거예요.",cn:"下个月要去韩国旅行。",parts:[{w:"달",role:"T",roleCn:"时间",mean:"下个月"},{w:"한국으로",role:"L",roleCn:"地点",mean:"韩国"},{w:"여행을",role:"O",roleCn:"宾语",mean:"旅行"},{w:"거예요",role:"V",roleCn:"谓语",mean:"要去"}],tip:"「-(으)ㄹ 거예요」打算；「로」表方向。",source:"checked"},
+  "연습":{ko:"꾸준한 연습이 실력을 늘려줘요.",cn:"持续的练习会提高实力。",parts:[{w:"꾸준한",role:"M",roleCn:"修饰",mean:"持续的"},{w:"연습이",role:"S",roleCn:"主语",mean:"练习"},{w:"실력을",role:"O",roleCn:"宾语",mean:"实力"},{w:"늘려줘요",role:"V",roleCn:"谓语",mean:"提高"}],tip:"「실력이 늘다」实力提高；꾸준하다 持续。",source:"checked"},
+  "연습하다":{ko:"발음을 매일 연습해요.",cn:"每天练习发音。",parts:[{w:"발음을",role:"O",roleCn:"宾语",mean:"发音"},{w:"매일",role:"T",roleCn:"时间",mean:"每天"},{w:"연습해요",role:"V",roleCn:"谓语",mean:"练习"}],tip:"「연습하다」练习；발음 发音。",source:"checked"},
+  "열":{ko:"열이 나서 몸이 뜨겁고 두통이 있어요.",cn:"发烧了身体发烫还头疼。",parts:[{w:"열이",role:"S",roleCn:"主语",mean:"发烧"},{w:"나서",role:"V",roleCn:"谓语",mean:"起"},{w:"몸이",role:"S",roleCn:"主语",mean:"身体"},{w:"뜨겁고",role:"M",roleCn:"修饰",mean:"发热"},{w:"두통이",role:"S",roleCn:"主语",mean:"头痛"},{w:"있어요",role:"V",roleCn:"谓语",mean:"有"}],tip:"「열이 나다」发烧；「두통」头痛。",source:"checked"},
+  "열다":{ko:"창문을 열어서 신선한 공기를 들이마셨어요.",cn:"打开窗户吸入了新鲜空气。",parts:[{w:"창문을",role:"O",roleCn:"宾语",mean:"窗"},{w:"열어서",role:"V",roleCn:"谓语",mean:"打开"},{w:"신선한",role:"M",roleCn:"修饰",mean:"新鲜的"},{w:"공기를",role:"O",roleCn:"宾语",mean:"空气"},{w:"들이마셨어요",role:"V",roleCn:"谓语",mean:"吸入了"}],tip:"「열다」打开；「들이마시다」吸入。",source:"checked"},
+  "열쇠":{ko:"열쇠를 잃어버려서 문을 못 열었어요.",cn:"把钥匙弄丢了所以打不开门。",parts:[{w:"열쇠를",role:"O",roleCn:"宾语",mean:"钥匙"},{w:"잃어버려서",role:"V",roleCn:"谓语",mean:"弄丢"},{w:"문을",role:"O",roleCn:"宾语",mean:"门"},{w:"못",role:"M",roleCn:"修饰",mean:"无法"},{w:"열었어요",role:"V",roleCn:"谓语",mean:"打开"}],tip:"「-아서」原因；「못 V」无法做。",source:"checked"},
+  "영하":{ko:"겨울 서울의 기온은 영하 10도까지 내려가요.",cn:"冬天首尔气温降到零下10度。",parts:[{w:"겨울",role:"T",roleCn:"时间",mean:"冬天"},{w:"서울의",role:"S",roleCn:"主语",mean:"首尔的"},{w:"기온은",role:"S",roleCn:"主语",mean:"气温"},{w:"영하",role:"O",roleCn:"宾语",mean:"零下"},{w:"10도",role:"O",roleCn:"宾语",mean:"10度"},{w:"까지",role:"M",roleCn:"修饰",mean:"到"},{w:"내려가요",role:"V",roleCn:"谓语",mean:"降"}],tip:"「영하」零下；내려가다 下降。",source:"checked"},
+  "영화관":{ko:"영화관에서 재미있는 영화를 봤어요.",cn:"在电影院看了有趣的电影。",parts:[{w:"영화관에서",role:"L",roleCn:"地点",mean:"电影院"},{w:"재미있는",role:"M",roleCn:"修饰",mean:"有趣的"},{w:"영화를",role:"O",roleCn:"宾语",mean:"电影"},{w:"봤어요",role:"V",roleCn:"谓语",mean:"看了"}],tip:"「재미있는」有趣的。",source:"checked"},
+  "예쁘다":{ko:"동생이 예쁜 치마를 입었어요.",cn:"妹妹穿了漂亮的裙子。",parts:[{w:"동생이",role:"S",roleCn:"主语",mean:"妹妹"},{w:"예쁜",role:"M",roleCn:"修饰",mean:"漂亮的"},{w:"치마를",role:"O",roleCn:"宾语",mean:"裙子"},{w:"입었어요",role:"V",roleCn:"谓语",mean:"穿了"}],tip:"「예쁜」漂亮的，定语形式；ㅡ不规则。",source:"checked"},
+  "예습하다":{ko:"내일 수업 내용을 미리 예습해요.",cn:"提前预习明天的课。",parts:[{w:"내일",role:"T",roleCn:"时间",mean:"明天"},{w:"내용을",role:"O",roleCn:"宾语",mean:"课的内容"},{w:"미리",role:"M",roleCn:"修饰",mean:"提前"},{w:"예습해요",role:"V",roleCn:"谓语",mean:"预习"}],tip:"「예습하다」预习；미리 提前。",source:"checked"},
+  "예약하다":{ko:"식당을 미리 예약했어요.",cn:"提前预定了餐厅。",parts:[{w:"식당을",role:"O",roleCn:"宾语",mean:"餐厅"},{w:"미리",role:"M",roleCn:"修饰",mean:"提前"},{w:"예약했어요",role:"V",roleCn:"谓语",mean:"预定了"}],tip:"「예약하다」预约；미리 提前。",source:"checked"},
+  "오늘":{ko:"오늘은 날씨가 정말 좋아요.",cn:"今天天气真的很好。",parts:[{w:"오늘은",role:"S",roleCn:"主语",mean:"今天"},{w:"날씨가",role:"S",roleCn:"主语",mean:"天气"},{w:"정말",role:"M",roleCn:"修饰",mean:"真的"},{w:"좋아요",role:"V",roleCn:"谓语",mean:"好"}],tip:"主题助词은 强调今天。",source:"checked"},
+  "오다":{ko:"친구가 집에 놀러 왔어요.",cn:"朋友来家里玩了。",parts:[{w:"친구가",role:"S",roleCn:"主语",mean:"朋友"},{w:"집에",role:"L",roleCn:"地点",mean:"家"},{w:"놀러",role:"O",roleCn:"宾语",mean:"玩"},{w:"왔어요",role:"V",roleCn:"谓语",mean:"来了"}],tip:"「놀러 오다」来玩；-아서 过去。",source:"checked"},
+  "오래":{ko:"오래 기다렸는데 버스가 안 왔어요.",cn:"等了很久公交都没来。",parts:[{w:"오래",role:"M",roleCn:"修饰",mean:"很久"},{w:"기다렸는데",role:"V",roleCn:"谓语",mean:"等了"},{w:"버스가",role:"S",roleCn:"主语",mean:"公交"},{w:"안",role:"M",roleCn:"修饰",mean:"没"},{w:"왔어요",role:"V",roleCn:"谓语",mean:"来"}],tip:"「오래」很久；-는데 表转折背景。",source:"checked"},
+  "오빠":{ko:"오빠와 쇼핑하러 갔어요.",cn:"和哥哥去购物了。",parts:[{w:"오빠와",role:"O",roleCn:"宾语",mean:"哥哥"},{w:"쇼핑하러",role:"L",roleCn:"地点",mean:"购物"},{w:"갔어요",role:"V",roleCn:"谓语",mean:"去了"}],tip:"女生称哥哥为오빠；「-하러 가다」表示去做某事。",source:"checked"},
+  "오전":{ko:"오전에 회의를 해요.",cn:"上午开会。",parts:[{w:"오전",role:"T",roleCn:"时间",mean:"上午"},{w:"회의를",role:"O",roleCn:"宾语",mean:"会议"},{w:"해요",role:"V",roleCn:"谓语",mean:"开"}],tip:"「오전」上午；회의를 하다 开会。",source:"checked"},
+  "오토바이":{ko:"오토바이를 타고 배달을 했어요.",cn:"骑摩托车送外卖了。",parts:[{w:"오토바이를",role:"O",roleCn:"宾语",mean:"摩托车"},{w:"타고",role:"M",roleCn:"修饰",mean:"骑"},{w:"배달을",role:"O",roleCn:"宾语",mean:"外卖"},{w:"했어요",role:"V",roleCn:"谓语",mean:"做了"}],tip:"「배달하다」配送。",source:"checked"},
+  "오후":{ko:"오후에 수업이 있어요.",cn:"下午有课。",parts:[{w:"오후",role:"T",roleCn:"时间",mean:"下午"},{w:"수업이",role:"S",roleCn:"主语",mean:"课"},{w:"있어요",role:"V",roleCn:"谓语",mean:"有"}],tip:"「수업이 있다」有课。",source:"checked"},
+  "온수":{ko:"온수로 세수했어요.",cn:"用热水洗了脸。",parts:[{w:"온수로",role:"C",roleCn:"补语",mean:"热水"},{w:"세수했어요",role:"V",roleCn:"谓语",mean:"洗了脸"}],tip:"「(으)로」表示工具、材料。",source:"checked"},
+  "올라가다":{ko:"산 정상까지 올라가서 사진을 찍었어요.",cn:"爬到山顶拍了照片。",parts:[{w:"산",role:"O",roleCn:"宾语",mean:"山"},{w:"정상까지",role:"L",roleCn:"地点",mean:"山顶"},{w:"올라가서",role:"V",roleCn:"谓语",mean:"爬上"},{w:"사진을",role:"O",roleCn:"宾语",mean:"照片"},{w:"찍었어요",role:"V",roleCn:"谓语",mean:"拍了"}],tip:"「올라가다」上去；정상 山顶。",source:"checked"},
+  "옷":{ko:"새 옷을 입고 거울을 봤어요.",cn:"穿上新衣服照了镜子。",parts:[{w:"새",role:"M",roleCn:"修饰",mean:"新的"},{w:"옷을",role:"O",roleCn:"宾语",mean:"衣服"},{w:"입고",role:"M",roleCn:"修饰",mean:"穿上"},{w:"거울을",role:"O",roleCn:"宾语",mean:"镜子"},{w:"봤어요",role:"V",roleCn:"谓语",mean:"看了"}],tip:"「입다」穿衣服；与신다区分。",source:"checked"},
+  "요금":{ko:"버스 요금이 올랐어요.",cn:"公交车费涨了。",parts:[{w:"요금이",role:"S",roleCn:"主语",mean:"车费"},{w:"올랐어요",role:"V",roleCn:"谓语",mean:"涨了"}],tip:"「오르다」上涨。",source:"checked"},
+  "요리":{ko:"저는 한국 요리를 만드는 걸 좋아해요.",cn:"我喜欢做韩国料理。",parts:[{w:"저는",role:"S",roleCn:"主语",mean:"我"},{w:"한국",role:"O",roleCn:"宾语",mean:"韩国"},{w:"요리를",role:"O",roleCn:"宾语",mean:"料理"},{w:"만드는",role:"O",roleCn:"宾语",mean:"做料理"},{w:"걸",role:"M",roleCn:"修饰",mean:"这件事"},{w:"좋아해요",role:"V",roleCn:"谓语",mean:"喜欢"}],tip:"「-는 걸 좋아하다」喜欢做某事。",source:"checked"},
+  "요리사":{ko:"요리사가 맛있는 음식을 만들어요.",cn:"厨师制作美味的食物。",parts:[{w:"요리사가",role:"S",roleCn:"主语",mean:"厨师"},{w:"맛있는",role:"M",roleCn:"修饰",mean:"美味的"},{w:"음식을",role:"O",roleCn:"宾语",mean:"食物"},{w:"만들어요",role:"V",roleCn:"谓语",mean:"制作"}],tip:"「요리사」= 요리(料理)+사(师)。",source:"checked"},
+  "요일":{ko:"오늘은 무슨 요일이에요?",cn:"今天星期几？",parts:[{w:"오늘은",role:"S",roleCn:"主语",mean:"今天"},{w:"무슨",role:"M",roleCn:"修饰",mean:"什么"},{w:"요일이에요",role:"V",roleCn:"谓语",mean:"星期"}],tip:"问星期用「무슨 요일」。",source:"checked"},
+  "우리":{ko:"우리 주말에 같이 영화를 볼까요?",cn:"我们周末一起看电影好吗？",parts:[{w:"우리",role:"S",roleCn:"主语",mean:"我们"},{w:"주말에",role:"T",roleCn:"时间",mean:"周末"},{w:"같이",role:"M",roleCn:"修饰",mean:"一起"},{w:"영화를",role:"O",roleCn:"宾语",mean:"电影"},{w:"볼까요",role:"V",roleCn:"谓语",mean:"要看吗"}],tip:"BASE：「(으)ㄹ까요?」表示提议「要不要…」。",source:"checked"},
+  "우산":{ko:"비가 와서 우산을 썼어요.",cn:"下雨了所以撑了伞。",parts:[{w:"비가",role:"S",roleCn:"主语",mean:"雨"},{w:"와서",role:"V",roleCn:"谓语",mean:"下"},{w:"우산을",role:"O",roleCn:"宾语",mean:"雨伞"},{w:"썼어요",role:"V",roleCn:"谓语",mean:"撑了"}],tip:"「쓰다」使用、撑（伞）。",source:"checked"},
+  "우유":{ko:"아침에 우유를 마시는 게 습관이에요.",cn:"早上喝牛奶是我的习惯。",parts:[{w:"아침에",role:"T",roleCn:"时间",mean:"早上"},{w:"우유를",role:"O",roleCn:"宾语",mean:"牛奶"},{w:"마시는",role:"O",roleCn:"宾语",mean:"喝牛奶"},{w:"게",role:"M",roleCn:"修饰",mean:"这件事"},{w:"습관이에요",role:"V",roleCn:"谓语",mean:"是习惯"}],tip:"「-는 게」把动词名词化；「습관이에요」是习惯。",source:"checked"},
+  "우체국":{ko:"우체국에서 소포를 부쳤어요.",cn:"在邮局寄了包裹。",parts:[{w:"우체국에서",role:"L",roleCn:"地点",mean:"邮局"},{w:"소포를",role:"O",roleCn:"宾语",mean:"包裹"},{w:"부쳤어요",role:"V",roleCn:"谓语",mean:"寄了"}],tip:"「부치다」寄（邮件）。",source:"checked"},
+  "우표":{ko:"편지에 우표를 붙였어요.",cn:"在信上贴了邮票。",parts:[{w:"편지에",role:"L",roleCn:"地点",mean:"信上"},{w:"우표를",role:"O",roleCn:"宾语",mean:"邮票"},{w:"붙였어요",role:"V",roleCn:"谓语",mean:"贴了"}],tip:"「붙이다」贴上。",source:"checked"},
+  "운동":{ko:"매일 아침에 운동을 해요.",cn:"每天早上运动。",parts:[{w:"매일",role:"T",roleCn:"时间",mean:"每天"},{w:"아침에",role:"T",roleCn:"时间",mean:"早上"},{w:"운동을",role:"O",roleCn:"宾语",mean:"运动"},{w:"해요",role:"V",roleCn:"谓语",mean:"做"}],tip:"「운동을 하다」运动；매일 每天。",source:"checked"},
+  "울다":{ko:"그 영화를 보고 울었어요.",cn:"他看了那部电影哭了。",parts:[{w:"그",role:"S",roleCn:"主语",mean:"他"},{w:"영화를",role:"O",roleCn:"宾语",mean:"电影"},{w:"보고",role:"M",roleCn:"修饰",mean:"看"},{w:"울었어요",role:"V",roleCn:"谓语",mean:"哭了"}],tip:"「울다」哭；过去울었어요。",source:"checked"},
+  "웃다":{ko:"친구의 농담을 듣고 크게 웃었어요.",cn:"听了朋友的笑话大声笑了。",parts:[{w:"친구의",role:"M",roleCn:"修饰",mean:"朋友的"},{w:"농담을",role:"O",roleCn:"宾语",mean:"笑话"},{w:"듣고",role:"M",roleCn:"修饰",mean:"听"},{w:"크게",role:"M",roleCn:"修饰",mean:"大声"},{w:"웃었어요",role:"V",roleCn:"谓语",mean:"笑了"}],tip:"「농담」玩笑；「웃다」笑。",source:"checked"},
+  "월":{ko:"이번 달에 여행을 가기로 했어요.",cn:"决定这个月去旅行。",parts:[{w:"이번",role:"M",roleCn:"修饰",mean:"这个"},{w:"달에",role:"T",roleCn:"时间",mean:"月"},{w:"여행을",role:"O",roleCn:"宾语",mean:"旅行"},{w:"가기로",role:"V",roleCn:"谓语",mean:"去"},{w:"했어요",role:"V",roleCn:"谓语",mean:"决定了"}],tip:"「-기로 하다」决定做。",source:"checked"},
+  "유람선":{ko:"유람선을 타고 강가를 구경했어요.",cn:"坐游船游览了江边。",parts:[{w:"유람선을",role:"O",roleCn:"宾语",mean:"游船"},{w:"타고",role:"M",roleCn:"修饰",mean:"乘坐"},{w:"강가를",role:"L",roleCn:"地点",mean:"江边"},{w:"구경했어요",role:"V",roleCn:"谓语",mean:"游览了"}],tip:"「유람선」游览船。",source:"checked"},
+  "은행":{ko:"은행에서 돈을 찾았어요.",cn:"在银行取了钱。",parts:[{w:"은행에서",role:"L",roleCn:"地点",mean:"银行"},{w:"돈을",role:"O",roleCn:"宾语",mean:"钱"},{w:"찾았어요",role:"V",roleCn:"谓语",mean:"取了"}],tip:"「돈을 찾다」取钱。",source:"checked"},
+  "의사":{ko:"의사에게 진료를 받았어요.",cn:"我看了医生（接受了诊疗）。",parts:[{w:"의사에게",role:"S",roleCn:"主语",mean:"医生"},{w:"진료를",role:"O",roleCn:"宾语",mean:"诊疗"},{w:"받았어요",role:"V",roleCn:"谓语",mean:"接受了"}],tip:"「진료를 받다」就诊。",source:"checked"},
+  "의자":{ko:"편안한 의자에 앉아서 쉬어요.",cn:"坐在舒适的椅子上休息。",parts:[{w:"편안한",role:"M",roleCn:"修饰",mean:"舒适的"},{w:"의자에",role:"L",roleCn:"地点",mean:"椅子"},{w:"앉아서",role:"V",roleCn:"谓语",mean:"坐下"},{w:"쉬어요",role:"V",roleCn:"谓语",mean:"休息"}],tip:"「-아서」连接动作；앉다 坐。",source:"checked"},
+  "이따가":{ko:"이따가 다시 연락할게요.",cn:"待会儿再联系你。",parts:[{w:"이따가",role:"T",roleCn:"时间",mean:"待会儿"},{w:"다시",role:"M",roleCn:"修饰",mean:"再"},{w:"연락할게요",role:"V",roleCn:"谓语",mean:"联系"}],tip:"「-(으)ㄹ게요」表达说话人意志。",source:"checked"},
+  "이름":{ko:"이름이 뭐예요?",cn:"你叫什么名字？",parts:[{w:"이름이",role:"S",roleCn:"主语",mean:"名字"},{w:"뭐예요",role:"V",roleCn:"谓语",mean:"是什么"}],tip:"最基础的自我介绍句型，礼貌询问用「뭐예요?」。",source:"checked"},
+  "이모":{ko:"이모가 선물을 보냈어요.",cn:"姨妈寄来了礼物。",parts:[{w:"이모가",role:"S",roleCn:"主语",mean:"姨妈"},{w:"선물을",role:"O",roleCn:"宾语",mean:"礼物"},{w:"보냈어요",role:"V",roleCn:"谓语",mean:"寄了"}],tip:"이모 是妈妈的姐妹。",source:"checked"},
+  "이유":{ko:"지각한 이유를 설명해 주세요.",cn:"请说明迟到的理由。",parts:[{w:"지각한",role:"M",roleCn:"修饰",mean:"迟到的"},{w:"이유를",role:"O",roleCn:"宾语",mean:"理由"},{w:"주세요",role:"V",roleCn:"谓语",mean:"请说明"}],tip:"「이유를 설명하다」说明理由。",source:"checked"},
+  "이해":{ko:"오늘 배운 내용을 완전히 이해했어요.",cn:"完全理解了今天学的内容。",parts:[{w:"오늘",role:"T",roleCn:"时间",mean:"今天"},{w:"내용을",role:"O",roleCn:"宾语",mean:"学的内容"},{w:"완전히",role:"M",roleCn:"修饰",mean:"完全"},{w:"이해했어요",role:"V",roleCn:"谓语",mean:"理解了"}],tip:"「이해하다」理解；완전히 完全地。",source:"checked"},
+  "일":{ko:"이번 달 10일에 시험이 있어요.",cn:"这个月10号有考试。",parts:[{w:"이번",role:"M",roleCn:"修饰",mean:"这个"},{w:"10일에",role:"T",roleCn:"时间",mean:"10号"},{w:"시험이",role:"S",roleCn:"主语",mean:"考试"},{w:"있어요",role:"V",roleCn:"谓语",mean:"有"}],tip:"日期用「일」；「시험이 있다」有考试。",source:"checked"},
+  "일어나다":{ko:"아침 6시에 일어나서 조깅을 해요.",cn:"早上6点起床慢跑。",parts:[{w:"아침",role:"T",roleCn:"时间",mean:"早上"},{w:"6시에",role:"T",roleCn:"时间",mean:"6点"},{w:"일어나서",role:"V",roleCn:"谓语",mean:"起床"},{w:"조깅을",role:"O",roleCn:"宾语",mean:"慢跑"},{w:"해요",role:"V",roleCn:"谓语",mean:"做"}],tip:"「일어나다」起床；-아서 动作先后。",source:"checked"},
+  "일정":{ko:"여행 일정을 꼼꼼하게 짰어요.",cn:"仔细制定了旅行日程。",parts:[{w:"여행",role:"O",roleCn:"宾语",mean:"旅行"},{w:"일정을",role:"O",roleCn:"宾语",mean:"日程"},{w:"꼼꼼하게",role:"M",roleCn:"修饰",mean:"仔细地"},{w:"짰어요",role:"V",roleCn:"谓语",mean:"制定了"}],tip:"「일정을 짜다」定日程；꼼꼼히 仔细地。",source:"checked"},
+  "일하다":{ko:"회사에서 열심히 일해요.",cn:"在公司努力工作。",parts:[{w:"회사에서",role:"L",roleCn:"地点",mean:"公司"},{w:"열심히",role:"M",roleCn:"修饰",mean:"努力地"},{w:"일해요",role:"V",roleCn:"谓语",mean:"工作"}],tip:"「열심히」努力地；일하다 工作。",source:"checked"},
+  "읽다":{ko:"도서관에서 신문을 읽으면서 커피를 마셨어요.",cn:"在图书馆一边看报一边喝咖啡。",parts:[{w:"도서관에서",role:"L",roleCn:"地点",mean:"图书馆"},{w:"신문을",role:"O",roleCn:"宾语",mean:"报纸"},{w:"읽으면서",role:"M",roleCn:"修饰",mean:"一边读"},{w:"커피를",role:"O",roleCn:"宾语",mean:"咖啡"},{w:"마셨어요",role:"V",roleCn:"谓语",mean:"喝了"}],tip:"「읽다」读；「-으면서」一边…一边。",source:"checked"},
+  "입":{ko:"의사선생님이 입을 크게 벌리라고 하셨어요.",cn:"医生让我把嘴张大。",parts:[{w:"의사선생님이",role:"S",roleCn:"主语",mean:"医生"},{w:"입을",role:"O",roleCn:"宾语",mean:"嘴"},{w:"크게",role:"M",roleCn:"修饰",mean:"大"},{w:"벌리라고",role:"V",roleCn:"谓语",mean:"张开"},{w:"하셨어요",role:"V",roleCn:"谓语",mean:"让"}],tip:"「-라고 하다」转述命令；「입을 벌리다」张嘴。",source:"checked"},
+  "있다":{ko:"책상 위에 컴퓨터와 책이 있어요.",cn:"桌上有电脑和书。",parts:[{w:"위에",role:"L",roleCn:"地点",mean:"桌上"},{w:"컴퓨터와",role:"O",roleCn:"宾语",mean:"电脑"},{w:"책이",role:"O",roleCn:"宾语",mean:"书"},{w:"있어요",role:"V",roleCn:"谓语",mean:"有"}],tip:"「있다」表示存在；「와」和。",source:"checked"},
+  "잊다":{ko:"친구의 생일을 잊어버렸어요.",cn:"忘记了朋友的生日。",parts:[{w:"친구의",role:"M",roleCn:"修饰",mean:"朋友的"},{w:"생일을",role:"O",roleCn:"宾语",mean:"生日"},{w:"잊어버렸어요",role:"V",roleCn:"谓语",mean:"忘了"}],tip:"「잊어버리다」忘记（完全）；-아서 原因。",source:"checked"},
+  "자다":{ko:"어제 늦게 자서 오늘 피곤해요.",cn:"昨天睡得晚今天很累。",parts:[{w:"어제",role:"T",roleCn:"时间",mean:"昨天"},{w:"늦게",role:"M",roleCn:"修饰",mean:"晚"},{w:"자서",role:"V",roleCn:"谓语",mean:"睡"},{w:"오늘",role:"T",roleCn:"时间",mean:"今天"},{w:"피곤해요",role:"V",roleCn:"谓语",mean:"累"}],tip:"「-아서」原因；「자다」睡觉。",source:"checked"},
+  "자르다":{ko:"과일을 예쁘게 잘라서 접시에 담았어요.",cn:"把水果切得漂亮装盘。",parts:[{w:"과일을",role:"O",roleCn:"宾语",mean:"水果"},{w:"예쁘게",role:"M",roleCn:"修饰",mean:"漂亮地"},{w:"잘라서",role:"V",roleCn:"谓语",mean:"切"},{w:"접시에",role:"L",roleCn:"地点",mean:"盘子"},{w:"담았어요",role:"V",roleCn:"谓语",mean:"盛了"}],tip:"「자르다」切；「-아서」连接。",source:"checked"},
+  "자전거":{ko:"자전거를 타고 한강에 갔어요.",cn:"骑自行车去了汉江。",parts:[{w:"자전거를",role:"O",roleCn:"宾语",mean:"自行车"},{w:"타고",role:"M",roleCn:"修饰",mean:"骑"},{w:"한강에",role:"L",roleCn:"地点",mean:"汉江"},{w:"갔어요",role:"V",roleCn:"谓语",mean:"去了"}],tip:"「자전거를 타다」骑自行车。",source:"checked"},
+  "자정":{ko:"자정까지 영화를 봤어요.",cn:"看电影看到午夜。",parts:[{w:"자정",role:"T",roleCn:"时间",mean:"午夜"},{w:"까지",role:"M",roleCn:"修饰",mean:"直到"},{w:"영화를",role:"O",roleCn:"宾语",mean:"电影"},{w:"봤어요",role:"V",roleCn:"谓语",mean:"看了"}],tip:"「까지」直到；자정 午夜。",source:"checked"},
+  "작다":{ko:"이 신발은 좀 작아요.",cn:"这鞋有点小。",parts:[{w:"이",role:"M",roleCn:"修饰",mean:"这"},{w:"신발은",role:"S",roleCn:"主语",mean:"鞋"},{w:"좀",role:"M",roleCn:"修饰",mean:"有点"},{w:"작아요",role:"V",roleCn:"谓语",mean:"小"}],tip:"「좀」有点；작다→작아요。",source:"checked"},
+  "잘 어울려요":{ko:"이 색깔이 너에게 잘 어울려요.",cn:"这个颜色很适合你。",parts:[{w:"이",role:"M",roleCn:"修饰",mean:"这"},{w:"색깔이",role:"S",roleCn:"主语",mean:"颜色"},{w:"너에게",role:"O",roleCn:"宾语",mean:"你"},{w:"잘",role:"M",roleCn:"修饰",mean:"很"},{w:"어울려요",role:"V",roleCn:"谓语",mean:"适合"}],tip:"「어울리다」适合、相配；르不规则→어울려요。",source:"checked"},
+  "잘생기다":{ko:"그 배우는 잘생기고 연기도 잘해요.",cn:"那个演员长得帅演技也好。",parts:[{w:"그",role:"S",roleCn:"主语",mean:"他"},{w:"배우는",role:"S",roleCn:"主语",mean:"演员"},{w:"잘생기고",role:"M",roleCn:"修饰",mean:"长得帅"},{w:"연기도",role:"O",roleCn:"宾语",mean:"演技"},{w:"잘해요",role:"V",roleCn:"谓语",mean:"好"}],tip:"「잘생기다」长得帅；-고 并列。",source:"checked"},
+  "잘한다":{ko:"한국어를 정말 잘하세요!",cn:"你韩语说得真好！",parts:[{w:"한국어를",role:"O",roleCn:"宾语",mean:"韩语"},{w:"정말",role:"M",roleCn:"修饰",mean:"真的"},{w:"잘하세요",role:"V",roleCn:"谓语",mean:"说得好"}],tip:"「잘하다」做得好；하세요 敬语。",source:"checked"},
+  "잠시":{ko:"잠시만 기다려 주세요.",cn:"请稍等一下。",parts:[{w:"잠시",role:"M",roleCn:"修饰",mean:"一会儿"},{w:"주세요",role:"V",roleCn:"谓语",mean:"请等"}],tip:"「잠시만」稍等片刻，礼貌用语。",source:"checked"},
+  "장마":{ko:"장마가 시작되면 습도가 높아져요.",cn:"梅雨一开始湿度就变高。",parts:[{w:"장마가",role:"S",roleCn:"主语",mean:"梅雨"},{w:"시작되면",role:"V",roleCn:"谓语",mean:"开始"},{w:"습도가",role:"S",roleCn:"主语",mean:"湿度"},{w:"높아져요",role:"V",roleCn:"谓语",mean:"变高"}],tip:"「습도가 높다」湿度高。",source:"checked"},
+  "재다":{ko:"키를 재니까 작년보다 컸어요.",cn:"一量身高比去年长高了。",parts:[{w:"키를",role:"O",roleCn:"宾语",mean:"身高"},{w:"재니까",role:"M",roleCn:"修饰",mean:"一量"},{w:"작년보다",role:"M",roleCn:"修饰",mean:"比去年"},{w:"컸어요",role:"V",roleCn:"谓语",mean:"长高了"}],tip:"「키를 재다」量身高；「-니까」发现。",source:"checked"},
+  "재미있다":{ko:"이 책은 읽기 시작하면 멈출 수 없을 만큼 재미있어요.",cn:"这本书一读起来就停不下来地有趣。",parts:[{w:"이",role:"M",roleCn:"修饰",mean:"这本"},{w:"책은",role:"S",roleCn:"主语",mean:"书"},{w:"읽기",role:"O",roleCn:"宾语",mean:"读"},{w:"시작하면",role:"V",roleCn:"谓语",mean:"开始"},{w:"만큼",role:"M",roleCn:"修饰",mean:"停不下来"},{w:"재미있어요",role:"V",roleCn:"谓语",mean:"有趣"}],tip:"高级句：「-을 만큼」到…程度；「재미있다」有趣。",source:"checked"},
+  "재주":{ko:"그녀는 음악에 재주가 있어요.",cn:"她在音乐上有天分。",parts:[{w:"그녀는",role:"S",roleCn:"主语",mean:"她"},{w:"음악에",role:"O",roleCn:"宾语",mean:"音乐"},{w:"재주가",role:"S",roleCn:"主语",mean:"天分"},{w:"있어요",role:"V",roleCn:"谓语",mean:"有"}],tip:"「재주가 있다」有才艺；그녀 她。",source:"checked"},
+  "저":{ko:"저는 한국어를 공부하고 있어요.",cn:"我正在学习韩语。",parts:[{w:"저는",role:"S",roleCn:"主语",mean:"我"},{w:"한국어를",role:"O",roleCn:"宾语",mean:"韩语"},{w:"있어요",role:"V",roleCn:"谓语",mean:"正在学习"}],tip:"저 是 나 的谦称，对长辈陌生人用；공부하고 있어요 为现在进行时。",source:"checked"},
+  "저기":{ko:"저기 저 사람이 누구예요?",cn:"那边那个人是谁？",parts:[{w:"저기",role:"L",roleCn:"地点",mean:"那里"},{w:"저",role:"M",roleCn:"修饰",mean:"那"},{w:"사람이",role:"S",roleCn:"主语",mean:"人"},{w:"누구예요",role:"V",roleCn:"谓语",mean:"是谁"}],tip:"「저기」那边（较远）；「누구예요」是谁。",source:"checked"},
+  "저녁":{ko:"저녁에 가족과 함께 식사해요.",cn:"晚上和家人一起吃饭。",parts:[{w:"저녁에",role:"T",roleCn:"时间",mean:"晚上"},{w:"가족과",role:"O",roleCn:"宾语",mean:"家人"},{w:"함께",role:"M",roleCn:"修饰",mean:"一起"},{w:"식사해요",role:"V",roleCn:"谓语",mean:"用餐"}],tip:"「식사하다」用餐。",source:"checked"},
+  "저녁밥":{ko:"저녁밥을 준비하고 있어요.",cn:"正在准备晚饭。",parts:[{w:"저녁밥을",role:"O",roleCn:"宾语",mean:"晚饭"},{w:"있어요",role:"V",roleCn:"谓语",mean:"正在准备"}],tip:"「준비하다」准备；现在进行时。",source:"checked"},
+  "적다":{ko:"오늘 손님이 별로 적어요.",cn:"今天客人不太少。",parts:[{w:"오늘",role:"T",roleCn:"时间",mean:"今天"},{w:"손님이",role:"S",roleCn:"主语",mean:"客人"},{w:"별로",role:"M",roleCn:"修饰",mean:"不太"},{w:"적어요",role:"V",roleCn:"谓语",mean:"少"}],tip:"「적다」少；별로 不太。",source:"checked"},
+  "전기":{ko:"잠들기 전에 전기를 꺼 주세요.",cn:"睡觉前请关灯（电）。",parts:[{w:"잠들기",role:"M",roleCn:"修饰",mean:"睡觉"},{w:"전에",role:"M",roleCn:"修饰",mean:"之前"},{w:"전기를",role:"O",roleCn:"宾语",mean:"电"},{w:"주세요",role:"V",roleCn:"谓语",mean:"请关"}],tip:"「끄다」关闭（电器）。",source:"checked"},
+  "전화":{ko:"친구에게 전화를 걸었어요.",cn:"给朋友打了电话。",parts:[{w:"친구에게",role:"O",roleCn:"宾语",mean:"朋友"},{w:"전화를",role:"O",roleCn:"宾语",mean:"电话"},{w:"걸었어요",role:"V",roleCn:"谓语",mean:"打了"}],tip:"「전화를 걸다」打电话。",source:"checked"},
+  "젊다":{ko:"우리 선생님은 젊고 에너지가 넘쳐요.",cn:"我们老师年轻活力充沛。",parts:[{w:"우리",role:"M",roleCn:"修饰",mean:"我们的"},{w:"선생님은",role:"S",roleCn:"主语",mean:"老师"},{w:"젊고",role:"M",roleCn:"修饰",mean:"年轻"},{w:"에너지가",role:"S",roleCn:"主语",mean:"活力"},{w:"넘쳐요",role:"V",roleCn:"谓语",mean:"充沛"}],tip:"「젊다」年轻；「넘치다」洋溢。",source:"checked"},
+  "점심":{ko:"점심을 먹고 조금 산책해요.",cn:"吃完午饭散会儿步。",parts:[{w:"점심을",role:"O",roleCn:"宾语",mean:"午饭"},{w:"먹고",role:"M",roleCn:"修饰",mean:"吃完"},{w:"조금",role:"M",roleCn:"修饰",mean:"一会儿"},{w:"산책해요",role:"V",roleCn:"谓语",mean:"散步"}],tip:"「-고」动作先后。",source:"checked"},
+  "접시":{ko:"접시에 음식을 담았어요.",cn:"把食物盛到盘子里。",parts:[{w:"접시에",role:"L",roleCn:"地点",mean:"盘子里"},{w:"음식을",role:"O",roleCn:"宾语",mean:"食物"},{w:"담았어요",role:"V",roleCn:"谓语",mean:"盛了"}],tip:"「담다」盛、装。",source:"checked"},
+  "젓가락":{ko:"젓가락으로 반찬을 집어 먹어요.",cn:"用筷子夹小菜吃。",parts:[{w:"젓가락으로",role:"C",roleCn:"补语",mean:"筷子"},{w:"반찬을",role:"O",roleCn:"宾语",mean:"小菜"},{w:"먹어요",role:"V",roleCn:"谓语",mean:"夹着吃"}],tip:"「집다」夹；「-어 먹다」夹来吃。",source:"checked"},
+  "정류소":{ko:"정류소에서 버스를 기다리고 있어요.",cn:"正在公交站等公交车。",parts:[{w:"정류소에서",role:"L",roleCn:"地点",mean:"公交站"},{w:"버스를",role:"O",roleCn:"宾语",mean:"公交车"},{w:"있어요",role:"V",roleCn:"谓语",mean:"正在等"}],tip:"「기다리다」等待；现在进行时。",source:"checked"},
+  "정류장":{ko:"정류소에서 버스를 기다리고 있어요.",cn:"正在公交站等公交车。",parts:[{w:"정류소에서",role:"L",roleCn:"地点",mean:"公交站"},{w:"버스를",role:"O",roleCn:"宾语",mean:"公交车"},{w:"있어요",role:"V",roleCn:"谓语",mean:"正在等"}],tip:"「기다리다」等待；现在进行时。",source:"checked"},
+  "정말":{ko:"도와 줘서 정말 감사해요.",cn:"真的谢谢你帮忙。",parts:[{w:"줘서",role:"V",roleCn:"谓语",mean:"帮忙"},{w:"정말",role:"M",roleCn:"修饰",mean:"真的"},{w:"감사해요",role:"V",roleCn:"谓语",mean:"谢谢"}],tip:"「정말」真的；「감사하다」感谢。",source:"checked"},
+  "정말 멋져요":{ko:"오늘 코트가 정말 멋져요!",cn:"今天大衣真帅气！",parts:[{w:"오늘",role:"T",roleCn:"时间",mean:"今天"},{w:"코트가",role:"S",roleCn:"主语",mean:"大衣"},{w:"정말",role:"M",roleCn:"修饰",mean:"真的"},{w:"멋져요",role:"V",roleCn:"谓语",mean:"帅"}],tip:"「멋지다」帅，ㅡ不规则→멋져요。",source:"checked"},
+  "정말 예뻐요":{ko:"오늘 머리 스타일이 정말 예뻐요!",cn:"今天发型真漂亮！",parts:[{w:"오늘",role:"T",roleCn:"时间",mean:"今天"},{w:"스타일이",role:"S",roleCn:"主语",mean:"发型"},{w:"정말",role:"M",roleCn:"修饰",mean:"真的"},{w:"예뻐요",role:"V",roleCn:"谓语",mean:"漂亮"}],tip:"「정말 예뻐요」真漂亮；예쁘다→예뻐요。",source:"checked"},
+  "졸리다":{ko:"밤이 늦었는데 자꾸 졸려요.",cn:"夜深了总是犯困。",parts:[{w:"밤이",role:"S",roleCn:"主语",mean:"夜"},{w:"늦었는데",role:"V",roleCn:"谓语",mean:"深了"},{w:"자꾸",role:"M",roleCn:"修饰",mean:"总"},{w:"졸려요",role:"V",roleCn:"谓语",mean:"困"}],tip:"「졸리다」困；「자꾸」总是。",source:"checked"},
+  "좀":{ko:"좀 천천히 말씀해 주세요.",cn:"请稍微说慢一点。",parts:[{w:"좀",role:"M",roleCn:"修饰",mean:"稍微"},{w:"천천히",role:"M",roleCn:"修饰",mean:"慢慢"},{w:"주세요",role:"V",roleCn:"谓语",mean:"请说"}],tip:"「좀」稍微；「말씀하다」说（敬语）。",source:"checked"},
+  "좁다":{ko:"골목이 좁아서 차가 못 지나가요.",cn:"巷子窄车过不去。",parts:[{w:"골목이",role:"S",roleCn:"主语",mean:"巷子"},{w:"좁아서",role:"V",roleCn:"谓语",mean:"窄"},{w:"차가",role:"S",roleCn:"主语",mean:"车"},{w:"못",role:"M",roleCn:"修饰",mean:"无法"},{w:"지나가요",role:"V",roleCn:"谓语",mean:"通过"}],tip:"「지나가다」通过；-아서 原因。",source:"checked"},
+  "좋다":{ko:"오늘 날씨가 정말 좋아요.",cn:"今天天气真的很好。",parts:[{w:"오늘",role:"T",roleCn:"时间",mean:"今天"},{w:"날씨가",role:"S",roleCn:"主语",mean:"天气"},{w:"정말",role:"M",roleCn:"修饰",mean:"真的"},{w:"좋아요",role:"V",roleCn:"谓语",mean:"好"}],tip:"「좋다」好；形容词现在时좋아요。",source:"checked"},
+  "좋아하다":{ko:"저는 한국 드라마를 좋아해요.",cn:"我喜欢韩国电视剧。",parts:[{w:"저는",role:"S",roleCn:"主语",mean:"我"},{w:"한국",role:"O",roleCn:"宾语",mean:"韩国"},{w:"드라마를",role:"O",roleCn:"宾语",mean:"电视剧"},{w:"좋아해요",role:"V",roleCn:"谓语",mean:"喜欢"}],tip:"「좋아하다」喜欢；宾语用를。",source:"checked"},
+  "죄송합니다":{ko:"늦어서 죄송합니다.",cn:"对不起我迟到了。",parts:[{w:"늦어서",role:"V",roleCn:"谓语",mean:"迟到"},{w:"죄송합니다",role:"V",roleCn:"谓语",mean:"对不起"}],tip:"「죄송합니다」正式道歉；-아서 原因。",source:"checked"},
+  "주다":{ko:"친구에게 생일 선물을 줬어요.",cn:"给朋友送了生日礼物。",parts:[{w:"친구에게",role:"O",roleCn:"宾语",mean:"朋友"},{w:"선물을",role:"O",roleCn:"宾语",mean:"生日礼物"},{w:"줬어요",role:"V",roleCn:"谓语",mean:"送了"}],tip:"「에게」给的对象；주다 过去줬어요。",source:"checked"},
+  "주말":{ko:"주말에 뭐 하세요?",cn:"周末做什么？",parts:[{w:"주말에",role:"T",roleCn:"时间",mean:"周末"},{w:"뭐",role:"O",roleCn:"宾语",mean:"什么"},{w:"하세요",role:"V",roleCn:"谓语",mean:"做"}],tip:"「뭐 하세요?」做什么，礼貌问。",source:"checked"},
+  "주스":{ko:"오렌지 주스를 한 잔을 마셨어요.",cn:"喝了一杯橙汁。",parts:[{w:"오렌지",role:"M",roleCn:"修饰",mean:"橙子"},{w:"주스를",role:"O",roleCn:"宾语",mean:"果汁"},{w:"한",role:"O",roleCn:"宾语",mean:"一"},{w:"잔을",role:"O",roleCn:"宾语",mean:"杯"},{w:"마셨어요",role:"V",roleCn:"谓语",mean:"喝了"}],tip:"오렌지 주스 橙汁；量词잔。",source:"checked"},
+  "주유소":{ko:"주유소에서 기름을 넣었어요.",cn:"在加油站加了油。",parts:[{w:"주유소에서",role:"L",roleCn:"地点",mean:"加油站"},{w:"기름을",role:"O",roleCn:"宾语",mean:"油"},{w:"넣었어요",role:"V",roleCn:"谓语",mean:"加了"}],tip:"「기름을 넣다」加油。",source:"checked"},
+  "주차장":{ko:"주차장에 차를 댔어요.",cn:"把车停在了停车场。",parts:[{w:"주차장에",role:"L",roleCn:"地点",mean:"停车场"},{w:"차를",role:"O",roleCn:"宾语",mean:"车"},{w:"댔어요",role:"V",roleCn:"谓语",mean:"停了"}],tip:"「차를 대다」停车。",source:"checked"},
+  "준비":{ko:"시험을 준비하느라고 바빠요.",cn:"忙着准备考试。",parts:[{w:"시험을",role:"O",roleCn:"宾语",mean:"考试"},{w:"준비하느라고",role:"M",roleCn:"修饰",mean:"忙着准备"},{w:"바빠요",role:"V",roleCn:"谓语",mean:"忙"}],tip:"「준비하다」准备；「-느라고」表原因。",source:"checked"},
+  "지갑":{ko:"지갑에 돈이 별로 없어요.",cn:"钱包里不太有钱。",parts:[{w:"지갑에",role:"L",roleCn:"地点",mean:"钱包里"},{w:"돈이",role:"S",roleCn:"主语",mean:"钱"},{w:"별로",role:"M",roleCn:"修饰",mean:"不太"},{w:"없어요",role:"V",roleCn:"谓语",mean:"没有"}],tip:"「별로」不太（用于否定）。",source:"checked"},
+  "지금":{ko:"지금 가고 있어요.",cn:"我现在正在走。",parts:[{w:"지금",role:"T",roleCn:"时间",mean:"现在"},{w:"있어요",role:"V",roleCn:"谓语",mean:"正在走"}],tip:"「-고 있다」现在进行时。",source:"checked"},
+  "지나다":{ko:"학교 앞을 지나가다가 친구를 봤어요.",cn:"路过学校前看到朋友。",parts:[{w:"앞을",role:"L",roleCn:"地点",mean:"学校前"},{w:"지나가다가",role:"M",roleCn:"修饰",mean:"路过"},{w:"친구를",role:"O",roleCn:"宾语",mean:"朋友"},{w:"봤어요",role:"V",roleCn:"谓语",mean:"看到"}],tip:"「지나가다」经过；-다가 途中。",source:"checked"},
+  "지나치다":{ko:"버스를 지나쳐서 한 정거장을 더 걸었어요.",cn:"错过了公交多走了一站。",parts:[{w:"버스를",role:"O",roleCn:"宾语",mean:"公交"},{w:"지나쳐서",role:"V",roleCn:"谓语",mean:"错过"},{w:"한",role:"O",roleCn:"宾语",mean:"一"},{w:"정거장",role:"M",roleCn:"修饰",mean:"站"},{w:"더",role:"M",roleCn:"修饰",mean:"再"},{w:"걸었어요",role:"V",roleCn:"谓语",mean:"走了"}],tip:"「지나치다」错过；정거장 车站。",source:"checked"},
+  "지진":{ko:"지진이 났을 때 진동이 정말 컸어요.",cn:"地震发生时震动真的很大。",parts:[{w:"지진이",role:"S",roleCn:"主语",mean:"地震"},{w:"났을",role:"V",roleCn:"谓语",mean:"发生"},{w:"때",role:"M",roleCn:"修饰",mean:"时候"},{w:"진동이",role:"S",roleCn:"主语",mean:"震动"},{w:"정말",role:"M",roleCn:"修饰",mean:"真的"},{w:"컸어요",role:"V",roleCn:"谓语",mean:"大"}],tip:"「지진이 나다」发生地震；「-을 때」…的时候。",source:"checked"},
+  "지하철":{ko:"지하철이 빠르고 편해서 자주 타요.",cn:"地铁又快又方便所以经常坐。",parts:[{w:"지하철이",role:"S",roleCn:"主语",mean:"地铁"},{w:"빠르고",role:"M",roleCn:"修饰",mean:"快"},{w:"편해서",role:"V",roleCn:"谓语",mean:"方便"},{w:"자주",role:"M",roleCn:"修饰",mean:"经常"},{w:"타요",role:"V",roleCn:"谓语",mean:"坐"}],tip:"「-고」连接并列；「자주」经常。",source:"checked"},
+  "지하철역":{ko:"지하철역에서 3번 출구로 나가요.",cn:"从地铁站的3号口出去。",parts:[{w:"지하철역에서",role:"L",roleCn:"地点",mean:"地铁站"},{w:"3번",role:"O",roleCn:"宾语",mean:"3号"},{w:"출구로",role:"L",roleCn:"地点",mean:"出口"},{w:"나가요",role:"V",roleCn:"谓语",mean:"出去"}],tip:"「출구로 나가다」从出口出去。",source:"checked"},
+  "질문":{ko:"궁금한 게 있어서 질문드립니다.",cn:"有好奇的事想提问。",parts:[{w:"궁금한",role:"M",roleCn:"修饰",mean:"好奇的"},{w:"게",role:"S",roleCn:"主语",mean:"事"},{w:"있어서",role:"V",roleCn:"谓语",mean:"有"},{w:"질문드립니다",role:"V",roleCn:"谓语",mean:"提问"}],tip:"「질문드리다」提问（谦语）。",source:"checked"},
+  "짐":{ko:"여행 짐을 미리 쌌어요.",cn:"提前打包好了旅行行李。",parts:[{w:"여행",role:"O",roleCn:"宾语",mean:"旅行"},{w:"짐을",role:"O",roleCn:"宾语",mean:"行李"},{w:"미리",role:"M",roleCn:"修饰",mean:"提前"},{w:"쌌어요",role:"V",roleCn:"谓语",mean:"打包了"}],tip:"「짐을 싸다」打包行李。",source:"checked"},
+  "집":{ko:"오늘 일이 끝나자마자 집에 가고 싶어요.",cn:"今天工作一结束就想回家。",parts:[{w:"오늘",role:"T",roleCn:"时间",mean:"今天"},{w:"일이",role:"S",roleCn:"主语",mean:"工作"},{w:"끝나자마자",role:"M",roleCn:"修饰",mean:"一结束"},{w:"집에",role:"L",roleCn:"地点",mean:"家"},{w:"싶어요",role:"V",roleCn:"谓语",mean:"想回"}],tip:"「-자마자」一…就…；表示紧接着。",source:"checked"},
+  "짧다":{ko:"그는 머리를 짧게 잘랐어요.",cn:"他把头发剪短了。",parts:[{w:"그",role:"S",roleCn:"主语",mean:"他"},{w:"머리를",role:"O",roleCn:"宾语",mean:"头发"},{w:"짧게",role:"M",roleCn:"修饰",mean:"短短地"},{w:"잘랐어요",role:"V",roleCn:"谓语",mean:"剪了"}],tip:"「짧게」短短地；形容词副词化。",source:"checked"},
+  "짱이다":{ko:"우리 수업은 정말 짱이에요!",cn:"我们的课真的超棒！",parts:[{w:"우리",role:"M",roleCn:"修饰",mean:"我们的"},{w:"수업은",role:"S",roleCn:"主语",mean:"课"},{w:"정말",role:"M",roleCn:"修饰",mean:"真的"},{w:"짱이에요",role:"V",roleCn:"谓语",mean:"超棒"}],tip:"「짱이다」超棒（口语）；이에요 是。",source:"checked"},
+  "찌개":{ko:"저녁에 김치찌개를 끓였어요.",cn:"晚饭煮了泡菜汤。",parts:[{w:"저녁에",role:"T",roleCn:"时间",mean:"晚饭"},{w:"김치찌개를",role:"O",roleCn:"宾语",mean:"泡菜汤"},{w:"끓였어요",role:"V",roleCn:"谓语",mean:"煮了"}],tip:"「찌개」是浓汤；끓이다 煮。",source:"checked"},
+  "차":{ko:"오후에 할머니와 차를 마셔요.",cn:"下午和奶奶喝茶。",parts:[{w:"오후에",role:"T",roleCn:"时间",mean:"下午"},{w:"할머니와",role:"O",roleCn:"宾语",mean:"奶奶"},{w:"차를",role:"O",roleCn:"宾语",mean:"茶"},{w:"마셔요",role:"V",roleCn:"谓语",mean:"喝"}],tip:"「와」和；茶搭配 마시다。",source:"checked"},
+  "착하다":{ko:"우리 강아지는 말을 잘 들어요.",cn:"我们小狗很听话。",parts:[{w:"우리",role:"M",roleCn:"修饰",mean:"我们的"},{w:"강아지는",role:"S",roleCn:"主语",mean:"小狗"},{w:"말을",role:"O",roleCn:"宾语",mean:"话"},{w:"잘",role:"M",roleCn:"修饰",mean:"很"},{w:"들어요",role:"V",roleCn:"谓语",mean:"听"}],tip:"「착하다」乖、善良；「말을 듣다」听话。",source:"checked"},
+  "참하다":{ko:"우리 할머니는 마음이 참하세요.",cn:"我们奶奶心地善良。",parts:[{w:"우리",role:"M",roleCn:"修饰",mean:"我们的"},{w:"할머니는",role:"S",roleCn:"主语",mean:"奶奶"},{w:"마음이",role:"S",roleCn:"主语",mean:"心"},{w:"참하세요",role:"V",roleCn:"谓语",mean:"善良"}],tip:"「참하다」善良、纯真；하세요 敬语。",source:"checked"},
+  "창문":{ko:"날씨가 좋아서 창문을 열었어요.",cn:"天气好所以打开了窗户。",parts:[{w:"날씨가",role:"S",roleCn:"主语",mean:"天气"},{w:"좋아서",role:"V",roleCn:"谓语",mean:"好"},{w:"창문을",role:"O",roleCn:"宾语",mean:"窗户"},{w:"열었어요",role:"V",roleCn:"谓语",mean:"打开了"}],tip:"「열다」打开；因果句。",source:"checked"},
+  "찾다":{ko:"잃어버린 지갑을 결국 찾았어요.",cn:"终于找到了丢掉的钱包。",parts:[{w:"잃어버린",role:"M",roleCn:"修饰",mean:"丢了的"},{w:"지갑을",role:"O",roleCn:"宾语",mean:"钱包"},{w:"결국",role:"M",roleCn:"修饰",mean:"终于"},{w:"찾았어요",role:"V",roleCn:"谓语",mean:"找到了"}],tip:"「잃어버린」过去定语；결국 终于。",source:"checked"},
+  "찾아가다":{ko:"선생님 댁을 찾아가서 여쭤봤어요.",cn:"去老师家请教了。",parts:[{w:"댁을",role:"L",roleCn:"地点",mean:"老师家"},{w:"찾아가서",role:"V",roleCn:"谓语",mean:"去找"},{w:"여쭤봤어요",role:"V",roleCn:"谓语",mean:"请教了"}],tip:"「찾아가다」去找；「여쭙다」请问（谦语）。",source:"checked"},
+  "책상":{ko:"책상 위에 책과 노트가 있어요.",cn:"书桌上有书和笔记本。",parts:[{w:"위에",role:"L",roleCn:"地点",mean:"桌上"},{w:"책과",role:"O",roleCn:"宾语",mean:"书"},{w:"노트가",role:"O",roleCn:"宾语",mean:"笔记本"},{w:"있어요",role:"V",roleCn:"谓语",mean:"有"}],tip:"「위에」在…上面；「과」和。",source:"checked"},
+  "처방전":{ko:"의사에게 처방전을 받아서 약국에 갔어요.",cn:"拿到医生处方去了药店。",parts:[{w:"의사에게",role:"S",roleCn:"主语",mean:"医生"},{w:"처방전을",role:"O",roleCn:"宾语",mean:"处方"},{w:"받아서",role:"V",roleCn:"谓语",mean:"拿到"},{w:"약국에",role:"L",roleCn:"地点",mean:"药店"},{w:"갔어요",role:"V",roleCn:"谓语",mean:"去了"}],tip:"「처방전」处方；-아서 动作先后。",source:"checked"},
+  "천둥":{ko:"천둥 소리에 놀라서 잠이 깼어요.",cn:"被雷声吓醒。",parts:[{w:"소리에",role:"S",roleCn:"主语",mean:"雷声"},{w:"놀라서",role:"V",roleCn:"谓语",mean:"吓到"},{w:"잠이",role:"O",roleCn:"宾语",mean:"睡意"},{w:"깼어요",role:"V",roleCn:"谓语",mean:"醒了"}],tip:"「놀라다」吃惊；「잠이 깨다」醒来。",source:"checked"},
+  "천천히":{ko:"천천히 말해도 괜찮아요.",cn:"慢慢说也没关系。",parts:[{w:"천천히",role:"M",roleCn:"修饰",mean:"慢慢地"},{w:"말해도",role:"V",roleCn:"谓语",mean:"说"},{w:"괜찮아요",role:"V",roleCn:"谓语",mean:"没关系"}],tip:"「천천히」慢慢地；「-아도 되다」可以。",source:"checked"},
+  "청소":{ko:"방을 청소하느라고 피곤해요.",cn:"因为打扫房间很累。",parts:[{w:"방을",role:"O",roleCn:"宾语",mean:"房间"},{w:"청소하느라고",role:"M",roleCn:"修饰",mean:"因为打扫"},{w:"피곤해요",role:"V",roleCn:"谓语",mean:"累"}],tip:"「-느라고」表示原因（费精力）。",source:"checked"},
+  "청소기":{ko:"청소기로 바닥을 청소했어요.",cn:"用吸尘器打扫了地板。",parts:[{w:"청소기로",role:"C",roleCn:"补语",mean:"吸尘器"},{w:"바닥을",role:"O",roleCn:"宾语",mean:"地板"},{w:"청소했어요",role:"V",roleCn:"谓语",mean:"打扫了"}],tip:"「바닥」地板。",source:"checked"},
+  "체육관":{ko:"체육관에서 농구를 해요.",cn:"在体育馆打篮球。",parts:[{w:"체육관에서",role:"L",roleCn:"地点",mean:"体育馆"},{w:"농구를",role:"O",roleCn:"宾语",mean:"篮球"},{w:"해요",role:"V",roleCn:"谓语",mean:"打"}],tip:"球类运动搭配「하다」。",source:"checked"},
+  "초대하다":{ko:"친구를 생일 파티에 초대했어요.",cn:"邀请朋友参加生日派对。",parts:[{w:"친구를",role:"O",roleCn:"宾语",mean:"朋友"},{w:"파티에",role:"L",roleCn:"地点",mean:"生日派对"},{w:"초대했어요",role:"V",roleCn:"谓语",mean:"邀请了"}],tip:"「초대하다」邀请；파티 派对。",source:"checked"},
+  "초밥":{ko:"초밥의 생선이 신선해서 맛있어요.",cn:"寿司的鱼很新鲜所以好吃。",parts:[{w:"초밥의",role:"S",roleCn:"主语",mean:"寿司的"},{w:"생선이",role:"S",roleCn:"主语",mean:"鱼"},{w:"신선해서",role:"V",roleCn:"谓语",mean:"新鲜"},{w:"맛있어요",role:"V",roleCn:"谓语",mean:"好吃"}],tip:"「-아서/어서」表示原因。",source:"checked"},
+  "최고다":{ko:"우리 팀이 이번 시합에서 최고였어요.",cn:"我们队这次比赛最棒。",parts:[{w:"우리",role:"M",roleCn:"修饰",mean:"我们的"},{w:"팀이",role:"S",roleCn:"主语",mean:"队"},{w:"이번",role:"M",roleCn:"修饰",mean:"这次"},{w:"시합에서",role:"L",roleCn:"地点",mean:"比赛"},{w:"최고였어요",role:"V",roleCn:"谓语",mean:"最棒"}],tip:"「최고다」最棒；过去최고였어요。",source:"checked"},
+  "최고예요":{ko:"오늘 정말 최고예요!",cn:"今天真的很棒！",parts:[{w:"오늘",role:"T",roleCn:"时间",mean:"今天"},{w:"정말",role:"M",roleCn:"修饰",mean:"真的"},{w:"최고예요",role:"V",roleCn:"谓语",mean:"最棒"}],tip:"「최고예요」= 최고다+예요，最棒了。",source:"checked"},
+  "최근":{ko:"최근 일이 많아서 바빠요.",cn:"最近工作多很忙。",parts:[{w:"최근",role:"T",roleCn:"时间",mean:"最近"},{w:"일이",role:"S",roleCn:"主语",mean:"工作"},{w:"많아서",role:"V",roleCn:"谓语",mean:"多"},{w:"바빠요",role:"V",roleCn:"谓语",mean:"忙"}],tip:"「최근」最近；-아서 原因。",source:"checked"},
+  "추석":{ko:"추석에 송편을 만들어요.",cn:"中秋做松饼。",parts:[{w:"추석",role:"T",roleCn:"时间",mean:"中秋"},{w:"송편을",role:"O",roleCn:"宾语",mean:"松饼"},{w:"만들어요",role:"V",roleCn:"谓语",mean:"做"}],tip:"「송편」松饼，中秋习俗。",source:"checked"},
+  "출발하다":{ko:"아침 8시에 출발하면 오후에 도착해요.",cn:"早上8点出发下午到。",parts:[{w:"아침",role:"T",roleCn:"时间",mean:"早上"},{w:"8시에",role:"T",roleCn:"时间",mean:"8点"},{w:"출발하면",role:"V",roleCn:"谓语",mean:"出发"},{w:"오후에",role:"T",roleCn:"时间",mean:"下午"},{w:"도착해요",role:"V",roleCn:"谓语",mean:"到达"}],tip:"「출발하다」出发；-(으)면 条件。",source:"checked"},
+  "춥다":{ko:"겨울 서울은 바람이 많이 불어서 더 추워요.",cn:"冬天首尔风刮得多所以更冷。",parts:[{w:"겨울",role:"T",roleCn:"时间",mean:"冬天"},{w:"서울은",role:"S",roleCn:"主语",mean:"首尔"},{w:"바람이",role:"S",roleCn:"主语",mean:"风"},{w:"많이",role:"M",roleCn:"修饰",mean:"很"},{w:"불어서",role:"V",roleCn:"谓语",mean:"刮"},{w:"더",role:"M",roleCn:"修饰",mean:"更"},{w:"추워요",role:"V",roleCn:"谓语",mean:"冷"}],tip:"「더」更；ㅂ不规则춥다→추워요。",source:"checked"},
+  "취미":{ko:"제 취미는 사진 찍기예요.",cn:"我的爱好是拍照。",parts:[{w:"제",role:"M",roleCn:"修饰",mean:"我的"},{w:"취미는",role:"S",roleCn:"主语",mean:"爱好"},{w:"찍기예요",role:"V",roleCn:"谓语",mean:"拍照"}],tip:"「취미」爱好；「찍기」拍照（名词化）。",source:"checked"},
+  "취소하다":{ko:"비가 와서 여행을 취소했어요.",cn:"下雨所以取消了旅行。",parts:[{w:"비가",role:"S",roleCn:"主语",mean:"雨"},{w:"와서",role:"V",roleCn:"谓语",mean:"下"},{w:"여행을",role:"O",roleCn:"宾语",mean:"旅行"},{w:"취소했어요",role:"V",roleCn:"谓语",mean:"取消了"}],tip:"「취소하다」取消；-아서 原因。",source:"checked"},
+  "치료":{ko:"병원에서 치료를 받고 나았어요.",cn:"在医院接受治疗好了。",parts:[{w:"병원에서",role:"L",roleCn:"地点",mean:"医院"},{w:"치료를",role:"O",roleCn:"宾语",mean:"治疗"},{w:"받고",role:"M",roleCn:"修饰",mean:"接受"},{w:"나았어요",role:"V",roleCn:"谓语",mean:"好了"}],tip:"「치료를 받다」接受治疗；낫다 痊愈。",source:"checked"},
+  "치즈":{ko:"치즈가 늘어나는 피자를 좋아해요.",cn:"我喜欢奶酪能拉丝的披萨。",parts:[{w:"치즈가",role:"S",roleCn:"主语",mean:"奶酪"},{w:"늘어나는",role:"M",roleCn:"修饰",mean:"拉丝的"},{w:"피자를",role:"O",roleCn:"宾语",mean:"披萨"},{w:"좋아해요",role:"V",roleCn:"谓语",mean:"喜欢"}],tip:"「늘어나는」现在定语修饰피자。",source:"checked"},
+  "친구":{ko:"주말에 친구와 카페에서 만나요.",cn:"周末和朋友在咖啡馆见面。",parts:[{w:"주말에",role:"T",roleCn:"时间",mean:"周末"},{w:"친구와",role:"O",roleCn:"宾语",mean:"朋友"},{w:"카페에서",role:"L",roleCn:"地点",mean:"咖啡馆"},{w:"만나요",role:"V",roleCn:"谓语",mean:"见面"}],tip:"「와/과」表示「和」；에서 表示动作发生的场所。",source:"checked"},
+  "침대":{ko:"침대에서 책을 읽다가 잠이 들었어요.",cn:"在床上看书看着就睡着了。",parts:[{w:"침대에서",role:"L",roleCn:"地点",mean:"床上"},{w:"책을",role:"O",roleCn:"宾语",mean:"书"},{w:"읽다가",role:"M",roleCn:"修饰",mean:"看着看着"},{w:"잠이",role:"O",roleCn:"宾语",mean:"睡意"},{w:"들었어요",role:"V",roleCn:"谓语",mean:"睡着了"}],tip:"「-다가」表示动作中途转变。",source:"checked"},
+  "칼":{ko:"칼로 사과를 깎았어요.",cn:"用刀削了苹果。",parts:[{w:"칼로",role:"C",roleCn:"补语",mean:"刀"},{w:"사과를",role:"O",roleCn:"宾语",mean:"苹果"},{w:"깎았어요",role:"V",roleCn:"谓语",mean:"削了"}],tip:"「깎다」削；칼로 用刀。",source:"checked"},
+  "캠핑":{ko:"캠핑장에 가서 텐트를 쳤어요.",cn:"去营地搭了帐篷。",parts:[{w:"캠핑장에",role:"L",roleCn:"地点",mean:"营地"},{w:"가서",role:"V",roleCn:"谓语",mean:"去"},{w:"텐트를",role:"O",roleCn:"宾语",mean:"帐篷"},{w:"쳤어요",role:"V",roleCn:"谓语",mean:"搭了"}],tip:"「텐트를 치다」搭帐篷。",source:"checked"},
+  "커피":{ko:"출근길에 커피를 한 잔을 사 들고 회사에 가요.",cn:"上班路上买一杯咖啡带去公司。",parts:[{w:"출근길에",role:"T",roleCn:"时间",mean:"上班路上"},{w:"커피를",role:"O",roleCn:"宾语",mean:"咖啡"},{w:"한",role:"O",roleCn:"宾语",mean:"一"},{w:"잔을",role:"O",roleCn:"宾语",mean:"杯"},{w:"들고",role:"O",roleCn:"宾语",mean:"买了带着"},{w:"회사에",role:"L",roleCn:"地点",mean:"公司"},{w:"가요",role:"V",roleCn:"谓语",mean:"去"}],tip:"「사 들고 가다」= 买了带着去，连接语尾 -아/어。",source:"checked"},
+  "컵":{ko:"컵에 물을 따라 주세요.",cn:"请往杯子里倒水。",parts:[{w:"컵에",role:"L",roleCn:"地点",mean:"杯子里"},{w:"물을",role:"O",roleCn:"宾语",mean:"水"},{w:"주세요",role:"V",roleCn:"谓语",mean:"请倒"}],tip:"「따르다」倒（液体）。",source:"checked"},
+  "코":{ko:"감기에 걸려서 코가 막혔어요.",cn:"感冒了鼻子堵了。",parts:[{w:"감기에",role:"S",roleCn:"主语",mean:"感冒"},{w:"걸려서",role:"V",roleCn:"谓语",mean:"得"},{w:"코가",role:"S",roleCn:"主语",mean:"鼻子"},{w:"막혔어요",role:"V",roleCn:"谓语",mean:"堵了"}],tip:"「감기에 걸리다」感冒；「코가 막히다」鼻塞。",source:"checked"},
+  "콧물":{ko:"콧물이 계속 나요.",cn:"一直流鼻涕。",parts:[{w:"콧물이",role:"S",roleCn:"主语",mean:"鼻涕"},{w:"계속",role:"M",roleCn:"修饰",mean:"一直"},{w:"나요",role:"V",roleCn:"谓语",mean:"流"}],tip:"「콧물이 나다」流鼻涕。",source:"checked"},
+  "크다":{ko:"우리 집은 생각보다 커요.",cn:"我们家比想象的大。",parts:[{w:"우리",role:"M",roleCn:"修饰",mean:"我们的"},{w:"집은",role:"S",roleCn:"主语",mean:"家"},{w:"생각보다",role:"M",roleCn:"修饰",mean:"比想象"},{w:"커요",role:"V",roleCn:"谓语",mean:"大"}],tip:"「생각보다」比想象；크다→커요。",source:"checked"},
+  "타다":{ko:"지하철을 타고 도서관에 갔어요.",cn:"坐地铁去了图书馆。",parts:[{w:"지하철을",role:"O",roleCn:"宾语",mean:"地铁"},{w:"타고",role:"M",roleCn:"修饰",mean:"乘"},{w:"도서관에",role:"L",roleCn:"地点",mean:"图书馆"},{w:"갔어요",role:"V",roleCn:"谓语",mean:"去了"}],tip:"「타고 가다」乘去；지하철을 타다。",source:"checked"},
+  "탑승권":{ko:"탑승권을 미리 준비하세요.",cn:"请提前准备好登机牌。",parts:[{w:"탑승권을",role:"O",roleCn:"宾语",mean:"登机牌"},{w:"미리",role:"M",roleCn:"修饰",mean:"提前"},{w:"준비하세요",role:"V",roleCn:"谓语",mean:"请准备"}],tip:"「미리」提前；준비하세요 敬语命令。",source:"checked"},
+  "태양":{ko:"태양이 뜨자 안개가 걷혔어요.",cn:"太阳一出来雾就散了。",parts:[{w:"태양이",role:"S",roleCn:"主语",mean:"太阳"},{w:"뜨자",role:"M",roleCn:"修饰",mean:"升起"},{w:"안개가",role:"S",roleCn:"主语",mean:"雾"},{w:"걷혔어요",role:"V",roleCn:"谓语",mean:"散了"}],tip:"「-자」一…就；걷히다 消散。",source:"checked"},
+  "택시":{ko:"짐이 많아서 택시를 불렀어요.",cn:"行李多所以叫了出租车。",parts:[{w:"짐이",role:"S",roleCn:"主语",mean:"行李"},{w:"많아서",role:"V",roleCn:"谓语",mean:"多"},{w:"택시를",role:"O",roleCn:"宾语",mean:"出租车"},{w:"불렀어요",role:"V",roleCn:"谓语",mean:"叫了"}],tip:"「택시를 부르다」叫车。",source:"checked"},
+  "텔레비전":{ko:"저녁에 텔레비전에서 뉴스를 봐요.",cn:"晚上在电视上看新闻。",parts:[{w:"저녁에",role:"T",roleCn:"时间",mean:"晚上"},{w:"텔레비전에서",role:"L",roleCn:"地点",mean:"电视上"},{w:"뉴스를",role:"O",roleCn:"宾语",mean:"新闻"},{w:"봐요",role:"V",roleCn:"谓语",mean:"看"}],tip:"「에서」表示媒体、场所。",source:"checked"},
+  "튀기다":{ko:"기름에 감자를 튀겨서 과자처럼 먹었어요.",cn:"用油炸了土豆当零食吃。",parts:[{w:"기름에",role:"L",roleCn:"地点",mean:"油"},{w:"감자를",role:"O",roleCn:"宾语",mean:"土豆"},{w:"튀겨서",role:"V",roleCn:"谓语",mean:"炸"},{w:"과자처럼",role:"M",roleCn:"修饰",mean:"像饼干"},{w:"먹었어요",role:"V",roleCn:"谓语",mean:"吃了"}],tip:"「튀기다」炸；「처럼」像。",source:"checked"},
+  "특기":{ko:"그녀의 특기는 춤이에요.",cn:"她的特长是跳舞。",parts:[{w:"그녀의",role:"S",roleCn:"主语",mean:"她的"},{w:"특기는",role:"S",roleCn:"主语",mean:"特长"},{w:"춤이에요",role:"V",roleCn:"谓语",mean:"跳舞"}],tip:"「특기」特长；춤 舞。",source:"checked"},
+  "팔":{ko:"운동하다가 팔을 다쳤어요.",cn:"运动时胳膊受伤了。",parts:[{w:"운동하다가",role:"M",roleCn:"修饰",mean:"运动时"},{w:"팔을",role:"O",roleCn:"宾语",mean:"胳膊"},{w:"다쳤어요",role:"V",roleCn:"谓语",mean:"受伤了"}],tip:"「-다가」动作中发生；「다치다」受伤。",source:"checked"},
+  "팔다":{ko:"시장에서 과일을 파는 사람이 많아요.",cn:"市场里卖水果的人很多。",parts:[{w:"시장에서",role:"L",roleCn:"地点",mean:"市场"},{w:"과일을",role:"O",roleCn:"宾语",mean:"水果"},{w:"파는",role:"M",roleCn:"修饰",mean:"卖"},{w:"사람이",role:"S",roleCn:"主语",mean:"人"},{w:"많아요",role:"V",roleCn:"谓语",mean:"多"}],tip:"「파는」现在定语；「팔다」卖。",source:"checked"},
+  "편의점":{ko:"편의점에서 물과 과자를 샀어요.",cn:"在便利店买了水和饼干。",parts:[{w:"편의점에서",role:"L",roleCn:"地点",mean:"便利店"},{w:"물과",role:"O",roleCn:"宾语",mean:"水"},{w:"과자를",role:"O",roleCn:"宾语",mean:"饼干"},{w:"샀어요",role:"V",roleCn:"谓语",mean:"买了"}],tip:"「과」和（书面）。",source:"checked"},
+  "편지":{ko:"고향 친구에게 편지를 썼어요.",cn:"给家乡的朋友写了信。",parts:[{w:"고향",role:"M",roleCn:"修饰",mean:"家乡"},{w:"친구에게",role:"O",roleCn:"宾语",mean:"朋友"},{w:"편지를",role:"O",roleCn:"宾语",mean:"信"},{w:"썼어요",role:"V",roleCn:"谓语",mean:"写了"}],tip:"「에게」给（人）。",source:"checked"},
+  "평일":{ko:"평일에는 아침 일찍 출근해요.",cn:"工作日早上很早上班。",parts:[{w:"평일",role:"T",roleCn:"时间",mean:"工作日"},{w:"아침",role:"M",roleCn:"修饰",mean:"早上"},{w:"일찍",role:"M",roleCn:"修饰",mean:"早"},{w:"출근해요",role:"V",roleCn:"谓语",mean:"上班"}],tip:"「평일」平日、工作日。",source:"checked"},
+  "표":{ko:"온라인에서 기차표를 예매했어요.",cn:"在网上预定了火车票。",parts:[{w:"온라인에서",role:"L",roleCn:"地点",mean:"网上"},{w:"기차표를",role:"O",roleCn:"宾语",mean:"火车票"},{w:"예매했어요",role:"V",roleCn:"谓语",mean:"预定了"}],tip:"「예매하다」预售、预定。",source:"checked"},
+  "피곤하다":{ko:"오늘 일이 많아서 많이 피곤해요.",cn:"今天工作多很累。",parts:[{w:"오늘",role:"T",roleCn:"时间",mean:"今天"},{w:"일이",role:"S",roleCn:"主语",mean:"工作"},{w:"많아서",role:"V",roleCn:"谓语",mean:"多"},{w:"많이",role:"M",roleCn:"修饰",mean:"很"},{w:"피곤해요",role:"V",roleCn:"谓语",mean:"累"}],tip:"「피곤하다」疲劳；-아서 原因。",source:"checked"},
+  "하늘":{ko:"하늘이 맑고 파래요.",cn:"天空晴朗湛蓝。",parts:[{w:"하늘이",role:"S",roleCn:"主语",mean:"天空"},{w:"맑고",role:"M",roleCn:"修饰",mean:"晴朗"},{w:"파래요",role:"V",roleCn:"谓语",mean:"蓝"}],tip:"「맑다」晴朗；形容词并列用-고。",source:"checked"},
+  "하다":{ko:"오늘 숙제를 다 했어요.",cn:"今天把作业全做完了。",parts:[{w:"오늘",role:"T",roleCn:"时间",mean:"今天"},{w:"숙제를",role:"O",roleCn:"宾语",mean:"作业"},{w:"다",role:"M",roleCn:"修饰",mean:"全"},{w:"했어요",role:"V",roleCn:"谓语",mean:"做完了"}],tip:"「숙제를 하다」做作业；다 完全地。",source:"checked"},
+  "하지만":{ko:"이 옷은 예쁘지만 너무 비싸요.",cn:"这衣服漂亮但是太贵。",parts:[{w:"이",role:"M",roleCn:"修饰",mean:"这"},{w:"옷은",role:"S",roleCn:"主语",mean:"衣服"},{w:"예쁘지만",role:"V",roleCn:"谓语",mean:"漂亮"},{w:"너무",role:"M",roleCn:"修饰",mean:"太"},{w:"비싸요",role:"V",roleCn:"谓语",mean:"贵"}],tip:"「하지만」但是；「-지만」转折。",source:"checked"},
+  "학교":{ko:"학교에서 친구와 같이 공부해요.",cn:"在学校和朋友一起学习。",parts:[{w:"학교에서",role:"L",roleCn:"地点",mean:"学校"},{w:"친구와",role:"O",roleCn:"宾语",mean:"朋友"},{w:"같이",role:"M",roleCn:"修饰",mean:"一起"},{w:"공부해요",role:"V",roleCn:"谓语",mean:"学习"}],tip:"「에서」动作发生场所；「와」和。",source:"checked"},
+  "학생":{ko:"학생들이 교실에 있어요.",cn:"学生们在教室里。",parts:[{w:"학생들이",role:"S",roleCn:"主语",mean:"学生们"},{w:"교실에",role:"L",roleCn:"地点",mean:"教室"},{w:"있어요",role:"V",roleCn:"谓语",mean:"在"}],tip:"「들이」是复数主格；있다 表示「在」。",source:"checked"},
+  "할머니":{ko:"할머니가 떡을 만드세요.",cn:"奶奶在做年糕。",parts:[{w:"할머니가",role:"S",roleCn:"主语",mean:"奶奶"},{w:"떡을",role:"O",roleCn:"宾语",mean:"年糕"},{w:"만드세요",role:"V",roleCn:"谓语",mean:"做"}],tip:"「만들다」做；敬语形 만드세요。",source:"checked"},
+  "할아버지":{ko:"할아버지가 공원을 산책하세요.",cn:"爷爷在公园散步。",parts:[{w:"할아버지가",role:"S",roleCn:"主语",mean:"爷爷"},{w:"공원을",role:"L",roleCn:"地点",mean:"公园"},{w:"산책하세요",role:"V",roleCn:"谓语",mean:"散步"}],tip:"「산책하다」散步；敬语终结束세요。",source:"checked"},
+  "함께":{ko:"우리 함께 사진을 찍어요.",cn:"我们一起拍照吧。",parts:[{w:"우리",role:"S",roleCn:"主语",mean:"我们"},{w:"함께",role:"M",roleCn:"修饰",mean:"一起"},{w:"사진을",role:"O",roleCn:"宾语",mean:"照片"},{w:"찍어요",role:"V",roleCn:"谓语",mean:"拍"}],tip:"「함께」一起；「사진을 찍다」拍照。",source:"checked"},
+  "합격하다":{ko:"시험에 합격해서 기뻐요.",cn:"考试合格了很开心。",parts:[{w:"시험에",role:"O",roleCn:"宾语",mean:"考试"},{w:"합격해서",role:"V",roleCn:"谓语",mean:"合格"},{w:"기뻐요",role:"V",roleCn:"谓语",mean:"高兴"}],tip:"「시험에 합격하다」通过考试。",source:"checked"},
+  "항공권":{ko:"항공권을 온라인에서 예약했어요.",cn:"在网上预定了机票。",parts:[{w:"항공권을",role:"O",roleCn:"宾语",mean:"机票"},{w:"온라인에서",role:"L",roleCn:"地点",mean:"网上"},{w:"예약했어요",role:"V",roleCn:"谓语",mean:"预定了"}],tip:"「예약하다」预约。",source:"checked"},
+  "헤어지다":{ko:"저녁 식사 후에 친구와 헤어졌어요.",cn:"晚饭后和朋友分开了。",parts:[{w:"식사",role:"O",roleCn:"宾语",mean:"晚饭"},{w:"후에",role:"M",roleCn:"修饰",mean:"后"},{w:"친구와",role:"O",roleCn:"宾语",mean:"朋友"},{w:"헤어졌어요",role:"V",roleCn:"谓语",mean:"分开了"}],tip:"「헤어지다」分开、告别。",source:"checked"},
+  "형":{ko:"형이 저에게 도움을 줬어요.",cn:"哥哥帮了我。",parts:[{w:"형이",role:"S",roleCn:"主语",mean:"哥哥"},{w:"저에게",role:"O",roleCn:"宾语",mean:"我"},{w:"도움을",role:"O",roleCn:"宾语",mean:"帮助"},{w:"줬어요",role:"V",roleCn:"谓语",mean:"给了"}],tip:"「에게」表示给的对象；줬어요 是 주다 的过去时。",source:"checked"},
+  "호텔":{ko:"여행 가서 호텔에서 묵었어요.",cn:"去旅行住在酒店了。",parts:[{w:"여행",role:"O",roleCn:"宾语",mean:"旅行"},{w:"가서",role:"V",roleCn:"谓语",mean:"去"},{w:"호텔에서",role:"L",roleCn:"地点",mean:"酒店"},{w:"묵었어요",role:"V",roleCn:"谓语",mean:"住了"}],tip:"「묵다」住宿。",source:"checked"},
+  "혼자":{ko:"주말에 혼자 영화를 봤어요.",cn:"周末独自看了电影。",parts:[{w:"주말에",role:"T",roleCn:"时间",mean:"周末"},{w:"혼자",role:"M",roleCn:"修饰",mean:"独自"},{w:"영화를",role:"O",roleCn:"宾语",mean:"电影"},{w:"봤어요",role:"V",roleCn:"谓语",mean:"看了"}],tip:"「혼자」独自；보다 过去봤어요。",source:"checked"},
+  "홍수":{ko:"큰 비가 와서 홍수가 났어요.",cn:"下大雨发生了洪水。",parts:[{w:"큰",role:"M",roleCn:"修饰",mean:"大的"},{w:"비가",role:"S",roleCn:"主语",mean:"大雨"},{w:"와서",role:"V",roleCn:"谓语",mean:"下"},{w:"홍수가",role:"S",roleCn:"主语",mean:"洪水"},{w:"났어요",role:"V",roleCn:"谓语",mean:"发生了"}],tip:"「홍수가 나다」发洪水。",source:"checked"},
+  "화나다":{ko:"말이 안 통해서 화가 났어요.",cn:"说不通所以生气了。",parts:[{w:"말이",role:"S",roleCn:"主语",mean:"话"},{w:"안",role:"M",roleCn:"修饰",mean:"不"},{w:"통해서",role:"V",roleCn:"谓语",mean:"通"},{w:"화가",role:"S",roleCn:"主语",mean:"火"},{w:"났어요",role:"V",roleCn:"谓语",mean:"生了"}],tip:"「화가 나다」生气；「말이 통하다」说得通。",source:"checked"},
+  "화물차":{ko:"화물차가 짐을 실어 나르요.",cn:"货车运送货物。",parts:[{w:"화물차가",role:"S",roleCn:"主语",mean:"货车"},{w:"짐을",role:"O",roleCn:"宾语",mean:"货物"},{w:"나르요",role:"V",roleCn:"谓语",mean:"运送"}],tip:"「실어 나르다」装载运输。",source:"checked"},
+  "화장":{ko:"외출하기 전에 화장을 했어요.",cn:"出门前化了妆。",parts:[{w:"외출하기",role:"M",roleCn:"修饰",mean:"出门"},{w:"전에",role:"M",roleCn:"修饰",mean:"前"},{w:"화장을",role:"O",roleCn:"宾语",mean:"妆"},{w:"했어요",role:"V",roleCn:"谓语",mean:"化了"}],tip:"「화장을 하다」化妆；「-(으)기 전에」之前。",source:"checked"},
+  "확인하다":{ko:"출발 전에 티켓을 확인하세요.",cn:"出发前请确认票。",parts:[{w:"전에",role:"M",roleCn:"修饰",mean:"出发前"},{w:"티켓을",role:"O",roleCn:"宾语",mean:"票"},{w:"확인하세요",role:"V",roleCn:"谓语",mean:"请确认"}],tip:"「확인하다」确认；「전에」之前。",source:"checked"},
+  "환불하다":{ko:"마음에 안 들어서 환불했어요.",cn:"不满意所以退款了。",parts:[{w:"마음에",role:"S",roleCn:"主语",mean:"心意"},{w:"안",role:"M",roleCn:"修饰",mean:"不"},{w:"들어서",role:"V",roleCn:"谓语",mean:"中意"},{w:"환불했어요",role:"V",roleCn:"谓语",mean:"退款了"}],tip:"「마음에 들다」中意；환불하다 退款。",source:"checked"},
+  "환승":{ko:"여기서 2호선으로 환승하세요.",cn:"请在这里换乘2号线。",parts:[{w:"여기서",role:"L",roleCn:"地点",mean:"这里"},{w:"2호선으로",role:"C",roleCn:"补语",mean:"2号线"},{w:"환승하세요",role:"V",roleCn:"谓语",mean:"请换乘"}],tip:"「환승하다」换乘。",source:"checked"},
+  "환영합니다":{ko:"우리 학교에 오신 것을 환영합니다.",cn:"欢迎来我们学校。",parts:[{w:"우리",role:"M",roleCn:"修饰",mean:"我们的"},{w:"학교에",role:"L",roleCn:"地点",mean:"学校"},{w:"것을",role:"V",roleCn:"谓语",mean:"来"},{w:"환영합니다",role:"V",roleCn:"谓语",mean:"欢迎"}],tip:"「환영합니다」欢迎；「오시다」来（敬语）。",source:"checked"},
+  "회사":{ko:"아침 일찍 회사에 출근해요.",cn:"早上很早去公司上班。",parts:[{w:"아침",role:"M",roleCn:"修饰",mean:"早上"},{w:"일찍",role:"M",roleCn:"修饰",mean:"早地"},{w:"회사에",role:"L",roleCn:"地点",mean:"公司"},{w:"출근해요",role:"V",roleCn:"谓语",mean:"上班"}],tip:"「출근하다」上班；에 表方向。",source:"checked"},
+  "휴가":{ko:"여름 휴가를 제주도에서 보냈어요.",cn:"在济州岛度过了暑假。",parts:[{w:"여름",role:"T",roleCn:"时间",mean:"夏天"},{w:"휴가를",role:"O",roleCn:"宾语",mean:"休假"},{w:"제주도에서",role:"L",roleCn:"地点",mean:"济州岛"},{w:"보냈어요",role:"V",roleCn:"谓语",mean:"度过了"}],tip:"「휴가를 보내다」度假。",source:"checked"},
+  "휴일":{ko:"휴일에는 집에서 푹 쉬고 싶어요.",cn:"休息日想在家好好休息。",parts:[{w:"휴일",role:"T",roleCn:"时间",mean:"休息日"},{w:"집에서",role:"L",roleCn:"地点",mean:"家里"},{w:"푹",role:"M",roleCn:"修饰",mean:"好好地"},{w:"싶어요",role:"V",roleCn:"谓语",mean:"想休息"}],tip:"「푹 쉬다」好好休息。",source:"checked"},
+  "휴지":{ko:"휴지로 코를 닦았어요.",cn:"用纸巾擦了鼻子。",parts:[{w:"휴지로",role:"C",roleCn:"补语",mean:"纸巾"},{w:"코를",role:"O",roleCn:"宾语",mean:"鼻子"},{w:"닦았어요",role:"V",roleCn:"谓语",mean:"擦了"}],tip:"「닦다」擦拭。",source:"checked"},
+  "흐르다":{ko:"더워서 땀이 흘러요.",cn:"太热了流汗。",parts:[{w:"더워서",role:"V",roleCn:"谓语",mean:"热"},{w:"땀이",role:"S",roleCn:"主语",mean:"汗"},{w:"흘러요",role:"V",roleCn:"谓语",mean:"流"}],tip:"「땀이 흐르다」流汗；-아서 原因。",source:"checked"}
+  };
+
+  /* ---------- 韩语词尾变化工具 ---------- */
   function isHangul(ch){ var c=ch.charCodeAt(0); return c>=0xAC00&&c<=0xD7A3; }
   function syllable(code){ return code-0xAC00; }
-  function hasBatch(ko){ // 末音节是否有收音（终声）
-    var ch=ko[ko.length-1]; if(!isHangul(ch))return false;
-    return syllable(ch.charCodeAt(0))%28!==0;
-  }
-  function objParticle(ko){ return hasBatch(ko)?'을':'를'; }   // 宾语助词
-  function subjParticle(ko){ return hasBatch(ko)?'이':'가'; }  // 主格助词
-  function topicParticle(ko){ return hasBatch(ko)?'은':'는'; } // 主题助词
+  function hasBatch(ko){ var ch=ko[ko.length-1]; if(!isHangul(ch))return false; return syllable(ch.charCodeAt(0))%28!==0; }
+  function objParticle(ko){ return hasBatch(ko)?'을':'를'; }
+  function subjParticle(ko){ return hasBatch(ko)?'이':'가'; }
+  function topicParticle(ko){ return hasBatch(ko)?'은':'는'; }
 
-  // 韩语音节分解/重组（准确版）
   var JONG=['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
   var VOW=['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
   function decomp(ch){ var s=ch.charCodeAt(0)-0xAC00; return {i:Math.floor(s/588), v:Math.floor((s%588)/28), f:s%28}; }
   function comp(i,v,f){ return String.fromCharCode(0xAC00+(i*21+v)*28+(f||0)); }
-  // 元音结尾词干的缩约：元音+아/어 → 新元音
   var ABB_A={'ㅏ':'ㅏ','ㅐ':'ㅐ','ㅑ':'ㅑ','ㅒ':'ㅒ','ㅗ':'ㅘ','ㅘ':'ㅘ','ㅙ':'ㅙ','ㅚ':'ㅚ','ㅛ':'ㅘ'};
   var ABB_E={'ㅓ':'ㅓ','ㅔ':'ㅔ','ㅕ':'ㅕ','ㅖ':'ㅖ','ㅜ':'ㅝ','ㅝ':'ㅝ','ㅞ':'ㅞ','ㅟ':'ㅟ','ㅠ':'ㅝ','ㅡ':'ㅓ','ㅢ':'ㅢ','ㅣ':'ㅕ'};
-
-  // 现在时词干：词尾变化 -아요/어요/해요（教材标准规则 + 常见不规则）
   function conjugate(ko){
     if(!/다$/.test(ko)) return ko;
     var stem=ko.slice(0,-1);
-    if(/하$/.test(stem)) return stem.slice(0,-1)+'해'; // 하다/발음하다→해요
+    if(/하$/.test(stem)) return stem.slice(0,-1)+'해';
     var last=stem[stem.length-1];
     if(!isHangul(last)) return stem+'어';
     var d=decomp(last), jong=JONG[d.f], vow=VOW[d.v];
     var core=stem.slice(0,-1);
-    var prev=stem.length>1?stem[stem.length-2]:'';
-
-    // ㅂ不规则：춥다→추워, 돕다→도와, 예쁘다(ㅂ无) …
-    if(jong==='ㅂ'){
-      var base=comp(d.i,d.v,0);
-      return core+base+(['ㅗ','ㅏ','ㅘ'].indexOf(vow)>=0?'와':'워');
-    }
-    // ㄷ不规则：듣다→들어, 묻다→물어, 걷다→걸어
-    if(jong==='ㄷ' && /[듣묻걷싣]다?$/.test(ko)){
-      return core+comp(d.i,d.v,8); // 终声ㄷ(7)→ㄹ(8)
-    }
-    // ㅅ不规则：짓다→지어, 낫다→나어, 벗다→벗어(제외)
-    if(jong==='ㅅ' && /[짓낫]다$/.test(ko)){
-      return core+comp(d.i,d.v,0);
-    }
-    // ㅎ不规则(形容词)：빨갛다→빨개, 노랗다→노래, 하얗다→하얘
-    if(jong==='ㅎ' && /[갛랗얗金刚]/.test(last)||jong==='ㅎ'&&/[갛랗]/.test(last)){
-      var hv={'ㅏ':'ㅐ','ㅑ':'ㅒ','ㅗ':'ㅘ'}[vow]||'ㅐ';
-      return core+comp(d.i,VOW.indexOf(hv),0);
-    }
-    // 르不规则：빠르다→빨라, 기르다→길러
-    if(/르$/.test(stem)){
-      var b=stem.slice(0,-1), lb=b[b.length-1];
-      if(!lb||!isHangul(lb)) return stem+'어';
-      var bd=decomp(lb), withL=comp(bd.i,bd.v,8); // 前字加ㄹ
-      return b.slice(0,-1)+withL+([0,8,9].indexOf(bd.v)>=0?'라':'러');
-    }
-    // 有终声：按元音选 아요/어요
-    if(d.f>0){
-      return stem+([0,1,2,3,8,9,10,11,12].indexOf(d.v)>=0?'아':'어');
-    }
-    // 无终声（元音结尾）：缩约
+    if(jong==='ㅂ'){ var base=comp(d.i,d.v,0); return core+base+(['ㅗ','ㅏ','ㅘ'].indexOf(vow)>=0?'와':'워'); }
+    if(jong==='ㄷ' && /[듣묻걷싣]다?$/.test(ko)){ return core+comp(d.i,d.v,8); }
+    if(jong==='ㅅ' && /[짓낫]다$/.test(ko)){ return core+comp(d.i,d.v,0); }
+    if(jong==='ㅎ'&&/[갛랗얗]/.test(last)){ var hv={'ㅏ':'ㅐ','ㅑ':'ㅒ','ㅗ':'ㅘ'}[vow]||'ㅐ'; return core+comp(d.i,VOW.indexOf(hv),0); }
+    if(/르$/.test(stem)){ var b=stem.slice(0,-1), lb=b[b.length-1]; if(!lb||!isHangul(lb))return stem+'어'; var bd=decomp(lb), withL=comp(bd.i,bd.v,8); return b.slice(0,-1)+withL+([0,8,9].indexOf(bd.v)>=0?'라':'러'); }
+    if(d.f>0){ return stem+([0,1,2,3,8,9,10,11,12].indexOf(d.v)>=0?'아':'어'); }
     var nv = ([0,1,2,3,8,9,10,11,12].indexOf(d.v)>=0 ? ABB_A : ABB_E)[vow] || vow;
     return core+comp(d.i,VOW.indexOf(nv),0);
   }
 
-  /* ---------- 人工校验的高频词精确例句 ----------
-     格式: 'ko': { ko, cn, parts:[[词,角色,角色中文],...], tip }
-     角色: S主语 O宾语 V谓语 L地点 T时间 M修饰 C补语
-  */
-  var OVERRIDE = {
-    '가다':{ko:'저는 학교에 가요.',cn:'我去学校。',parts:[['저는','S','主语'],['학교에','L','地点'],['가요','V','谓语']],tip:'动词词干 가 + 아요 → 가요；动词永远在句尾。'},
-    '오다':{ko:'친구가 집에 와요.',cn:'朋友回家来。',parts:[['친구가','S','主语'],['집에','L','地点'],['와요','V','谓语']],tip:'오다 的 아요 形不规则：오+아요 → 와요。'},
-    '먹다':{ko:'저는 밥을 먹어요.',cn:'我吃饭。',parts:[['저는','S','主语'],['밥을','O','宾语'],['먹어요','V','谓语']],tip:'经典主+宾+谓(SOV)结构；밥有收音→用 을。'},
-    '마시다':{ko:'물 좀 마세요.',cn:'请喝点水。',parts:[['물','O','宾语'],['마세요','V','谓语']],tip:'세요 是礼貌的请求终结词尾。'},
-    '보다':{ko:'저는 영화를 봐요.',cn:'我看电影。',parts:[['저는','S','主语'],['영화를','O','宾语'],['봐요','V','谓语']],tip:'보다 → 봐요（보+아요 → 봐요）。'},
-    '듣다':{ko:'음악을 들어요.',cn:'听音乐。',parts:[['음악을','O','宾语'],['들어요','V','谓语']],tip:'ㄷ不规则：듣다 → 들어요（듣→들）。'},
-    '하다':{ko:'숙제를 해요.',cn:'做作业。',parts:[['숙제를','O','宾语'],['해요','V','谓语']],tip:'하다 → 해요，是最常用的万能动词。'},
-    '자다':{ko:'저는 일찍 자요.',cn:'我睡得早。',parts:[['저는','S','主语'],['일찍','M','修饰'],['자요','V','谓语']],tip:'자다 → 자요（자+아요 → 자요）。'},
-    '일어나다':{ko:'아침에 일어나요.',cn:'早上起床。',parts:[['아침에','T','时间'],['일어나요','V','谓语']],tip:'时间状语放在主语和谓语之间。'},
-    '좋다':{ko:'날씨가 좋아요.',cn:'天气好。',parts:[['날씨가','S','主语'],['좋아요','V','谓语']],tip:'形容词作谓语，和动词一样在句尾。'},
-    '나쁘다':{ko:'날씨가 나빠요.',cn:'天气不好。',parts:[['날씨가','S','主语'],['나빠요','V','谓语']],tip:'ㅡ不规则：나쁘다 → 나빠요。'},
-    '크다':{ko:'집이 커요.',cn:'房子大。',parts:[['집이','S','主语'],['커요','V','谓语']],tip:'ㅡ不规则：크다 → 커요。'},
-    '작다':{ko:'강아지가 작아요.',cn:'小狗很小。',parts:[['강아지가','S','主语'],['작아요','V','谓语']],tip:'작다 → 작아요（작+아요）。'},
-    '예쁘다':{ko:'꽃이 예뻐요.',cn:'花很漂亮。',parts:[['꽃이','S','主语'],['예뻐요','V','谓语']],tip:'ㅡ不规则：예쁘다 → 예뻐요。'},
-    '사람':{ko:'저는 사람을 좋아해요.',cn:'我喜欢这个人。',parts:[['저는','S','主语'],['사람을','O','宾语'],['좋아해요','V','谓语']],tip:'名词+을/를 构成宾语；사람有收音→을。'},
-    '학교':{ko:'학교가 멀어요.',cn:'学校很远。',parts:[['학교가','S','主语'],['멀어요','V','谓语']],tip:'名词+이/가 构成主语；학교无收音→가。'},
-    '친구':{ko:'친구를 만나요.',cn:'见朋友。',parts:[['친구를','O','宾语'],['만나요','V','谓语']],tip:'친구无收音→用 를 做宾语助词。'},
-    '밥':{ko:'밥을 먹어요.',cn:'吃饭。',parts:[['밥을','O','宾语'],['먹어요','V','谓语']],tip:'밥有收音→用 을。'},
-    '물':{ko:'물을 마셔요.',cn:'喝水。',parts:[['물을','O','宾语'],['마셔요','V','谓语']],tip:'물有收音→用 을。'},
-    '사과':{ko:'사과를 사요.',cn:'买苹果。',parts:[['사과를','O','宾语'],['사요','V','谓语']],tip:'사과无收音→用 를。'},
-    '학생':{ko:'저는 학생이에요.',cn:'我是学生。',parts:[['저는','S','主语'],['학생이에요','V','谓语(是)']],tip:'名词+이에요 = 是…；学生有收音→이에요。'},
-    '선생님':{ko:'선생님이 오셨어요.',cn:'老师来了。',parts:[['선생님이','S','主语'],['오셨어요','V','谓语']],tip:'시/셨 表示对主语的尊敬。'},
-    '감사':{ko:'감사합니다.',cn:'谢谢。',parts:[['감사합니다','V','谓语']],tip:'합니다 是正式敬语终结词尾。'},
-    '사랑':{ko:'사랑해요.',cn:'我爱你。',parts:[['사랑해요','V','谓语']],tip:'사랑하다 → 사랑해요。'},
-    '공부':{ko:'한국어를 공부해요.',cn:'学韩语。',parts:[['한국어를','O','宾语'],['공부해요','V','谓语']],tip:'名词+하다 构成动词：공부하다→공부해요。'},
-    '운동':{ko:'운동을 해요.',cn:'做运动。',parts:[['운동을','O','宾语'],['해요','V','谓语']],tip:'운동은 名词，搭配 하다 使用。'},
-    '영화':{ko:'영화를 봐요.',cn:'看电影。',parts:[['영화를','O','宾语'],['봐요','V','谓语']],tip:'영화无收音→用 를。'},
-    '음악':{ko:'음악을 들어요.',cn:'听音乐。',parts:[['음악을','O','宾语'],['들어요','V','谓语']],tip:'음악有收音→用 을。'},
-    '집':{ko:'집에 가요.',cn:'回家。',parts:[['집에','L','地点'],['가요','V','谓语']],tip:'에 表示移动的目的地。'},
-    '사다':{ko:'빵을 사요.',cn:'买面包。',parts:[['빵을','O','宾语'],['사요','V','谓语']],tip:'사다 → 사요（사+아요）。'},
-    '만들다':{ko:'김밥을 만들어요.',cn:'做紫菜包饭。',parts:[['김밥을','O','宾语'],['만들어요','V','谓语']],tip:'ㄹ 收音直接+어요。'},
-    '알다':{ko:'저는 그를 알아요.',cn:'我认识他。',parts:[['저는','S','主语'],['그를','O','宾语'],['알아요','V','谓语']],tip:'ㄹ 收音+아요 → 알아요。'},
-    '읽다':{ko:'책을 읽어요.',cn:'读书。',parts:[['책을','O','宾语'],['읽어요','V','谓语']],tip:'책有收音→을；읽다→읽어요。'},
-    '쓰다':{ko:'편지를 써요.',cn:'写信。',parts:[['편지를','O','宾语'],['써요','V','谓语']],tip:'ㅡ不规则：쓰다 → 써요。'},
-    '말하다':{ko:'한국어로 말해요.',cn:'用韩语说。',parts:[['한국어로','M','修饰'],['말해요','V','谓语']],tip:'로 表示方式/工具。'},
-    '재미있다':{ko:'영화가 재미있어요.',cn:'电影有趣。',parts:[['영화가','S','主语'],['재미있어요','V','谓语']],tip:'있다 → 있어요，形容词性短语。'},
-    '많다':{ko:'사람이 많아요.',cn:'人很多。',parts:[['사람이','S','主语'],['많아요','V','谓语']],tip:'많다 → 많아요（많+아요）。'},
-    '적다':{ko:'사람이 적어요.',cn:'人很少。',parts:[['사람이','S','主语'],['적어요','V','谓语']],tip:'적다 → 적어요。'},
-    '높다':{ko:'산이 높아요.',cn:'山很高。',parts:[['산이','S','主语'],['높아요','V','谓语']],tip:'높다 → 높아요。'},
-    '낮다':{ko:'산이 낮아요.',cn:'山很低。',parts:[['산이','S','主语'],['낮아요','V','谓语']],tip:'낮다 → 낮아요。'},
-    '길다':{ko:'머리가 길어요.',cn:'头发长。',parts:[['머리가','S','主语'],['길어요','V','谓语']],tip:'ㄹ 收音+어요 → 길어요。'},
-    '짧다':{ko:'머리가 짧아요.',cn:'头发短。',parts:[['머리가','S','主语'],['짧아요','V','谓语']],tip:'짧다 → 짧아요。'},
-    '춥다':{ko:'날씨가 추워요.',cn:'天气冷。',parts:[['날씨가','S','主语'],['추워요','V','谓语']],tip:'ㅂ不规则：춥다 → 추워요。'},
-    '따뜻하다':{ko:'날씨가 따뜻해요.',cn:'天气暖和。',parts:[['날씨가','S','主语'],['따뜻해요','V','谓语']],tip:'하다 结尾 → 해요。'}
-  };
+  function mk(w,role,mean){ return {w:w,role:role,roleCn:({S:'主语',O:'宾语',V:'谓语',T:'时间',L:'地点',M:'修饰',C:'补语'}[role]||role),mean:mean}; }
 
-  /* ---------- 规则生成例句 ---------- */
+  /* ---------- 未覆盖词：按词性生成自然句（不再用"这是X"） ---------- */
   function buildExample(w){
     if(!w||!w.ko) return null;
-    if(OVERRIDE[w.ko]){
-      var o=OVERRIDE[w.ko];
-      return {ko:o.ko,cn:o.cn,parts:o.parts.map(function(p){return {w:p[0],role:p[1],roleCn:p[2]};}),tip:o.tip,source:'checked'};
-    }
     var ko=w.ko, cn=w.cn||'', cat=w.cat;
-    var isVerb=cat==='verb' && /다$/.test(ko);
-    var isAdj=cat==='adj' && /다$/.test(ko);
-    if(isVerb||isAdj){
-      var cj=conjugate(ko);
-      if(isAdj){
-        return {ko:'아주 '+cj+'요.',cn:'非常'+cn+'。',
-          parts:[{w:'아주',role:'M',roleCn:'修饰'},{w:cj+'요',role:'V',roleCn:'谓语'}],
-          tip:'形容词「'+cn+'」变位后放句尾，아주(很)可换成 너무(太)。',source:'rule'};
-      }
-      return {ko:'저는 '+cj+'요.',cn:'我'+cn+'。（主语可换成其他人称）',
-        parts:[{w:'저는',role:'S',roleCn:'主语'},{w:cj+'요',role:'V',roleCn:'谓语'}],
-        tip:'动词「'+cn+'」：去掉 다 加现在时词尾；主语+谓语，动词永远在句尾。',source:'rule'};
+    if(HAND[ko]){
+      var o=HAND[ko];
+      return {ko:o.ko,cn:o.cn,parts:o.parts,tip:o.tip,source:'checked'};
     }
-    // 名词：这是N + 我喜欢N（两句合一展示，主句用"这是"）
-    var isN=hasBatch(ko)?'이에요':'예요';
-    var op=objParticle(ko);
-    return {ko:'이건 '+ko+isN+'.',cn:'这是'+cn+'。',
-      parts:[{w:'이건',role:'S',roleCn:'主语'},{w:ko+isN,role:'V',roleCn:'谓语(是)'}],
-      tip:'名词+이에요/예요 = 「是…」；'+ko+(hasBatch(ko)?'有':'无')+'收音，用 '+isN+'。也可造句：저는 '+ko+op+' 좋아해요（我喜欢'+cn+'）。',source:'rule'};
+    var isVerb=cat==='verb'&&/다$/.test(ko);
+    var isAdj=cat==='adj'&&/다$/.test(ko);
+    if(isVerb){
+      var cj=conjugate(ko);
+      var ko2='저는 요즘 '+cj+'요.';
+      return {ko:ko2,cn:'我最近'+cn+'。',
+        parts:[mk('저는','S','我'),mk('요즘','T','最近'),mk(cj+'요','V',cn)],
+        tip:'「'+ko+'」是动词，"+아요/어요"变现在时；主语+谓语，动词放句尾。',source:'rule'};
+    }
+    if(isAdj){
+      var cj2=conjugate(ko);
+      return {ko:'이건 정말 '+cj2+'요.',cn:'这个真的很'+cn+'。',
+        parts:[mk('이건','S','这个'),mk('정말','M','真的'),mk(cj2+'요','V',cn)],
+        tip:'形容词「'+cn+'」变位后放句尾；정말(真的)可换成 아주(很)。',source:'rule'};
+    }
+    // 名词/其他：按语义搭配自然动词，避免"这是X"
+    var particle=objParticle(ko);
+    var scenes=[
+      {ko:'저는 '+ko+particle+' 좋아해요.',cn:'我喜欢'+cn+'。',parts:[mk('저는','S','我'),mk(ko+particle,'O',cn),mk('좋아해요','V','喜欢')]},
+      {ko:'요즘 '+ko+'을/를 자주 써요.',cn:'最近常用'+cn+'。',parts:[mk('요즘','T','最近'),mk(ko,'O',cn),mk('자주 써요','V','常用')]},
+      {ko:'이 '+ko+'는 정말 좋아요.',cn:'这个'+cn+'真不错。',parts:[mk('이 '+ko+'는','S','这个'+cn),mk('정말','M','真的'),mk('좋아요','V','好')]}
+    ];
+    var s=scenes[(ko.charCodeAt(0)+cn.length)%scenes.length];
+    return {ko:s.ko,cn:s.cn,parts:s.parts,tip:'「'+ko+'」是名词，搭配助词을/를+动词使用；试着把它放进你熟悉的场景里造句。',source:'rule'};
   }
 
   global.buildExample=buildExample;
+  global.__wordHAND=HAND;
   global.__koRule={conjugate:conjugate,hasBatch:hasBatch,objParticle:objParticle,subjParticle:subjParticle,topicParticle:topicParticle};
 })(window);

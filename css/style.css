@@ -37,7 +37,9 @@ button{cursor:pointer}
 .app{
   position:relative;
   width:100%;max-width:430px;
-  height:100dvh;max-height:932px;
+  /* 用 100% 让容器严格贴合 html/body 的可视高度；body 高度已由动态脚本
+     设为「可视区高度 - 顶部安全区」，避免 iOS 地址栏/Home 条造成的底部空隙 */
+  height:100%;
   display:flex;flex-direction:column;
   overflow:hidden;
   background-color:#f7f4ff;
@@ -380,12 +382,14 @@ button{cursor:pointer}
 .log-check{font-size:18px}
 .log-check.done{filter:none}
 
-/* ---------- 底部导航 ---------- */
-.tabbar{height:64px;flex-shrink:0;display:flex;align-items:stretch;justify-content:space-around;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding-bottom:var(--safe-b)}
-.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10px;color:var(--muted);font-weight:600;transition:.15s}
-.tab-item .ti-icon{font-size:21px;filter:grayscale(1);opacity:.6;transition:.15s}
+/* ---------- 底部导航 ----------
+   高度 = 内容区(66px) + 底部安全区，图标与文字在内容区内垂直居中；
+   安全区仅作为 Home 条留白，不再挤压图标，消除导航下方空隙。 */
+.tabbar{flex-shrink:0;display:flex;align-items:stretch;justify-content:space-around;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding-bottom:var(--safe-b)}
+.tab-item{flex:1;height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;color:var(--muted);font-weight:600;transition:.15s}
+.tab-item .ti-icon{font-size:27px;line-height:1;filter:grayscale(1);opacity:.6;transition:.15s}
 .tab-item.active{color:var(--purple-deep)}
-.tab-item.active .ti-icon{filter:none;opacity:1;transform:translateY(-2px)}
+.tab-item.active .ti-icon{filter:none;opacity:1;transform:translateY(-2px) scale(1.06)}
 
 /* ---------- 弹层 / Toast ---------- */
 .modal-overlay{position:absolute;inset:0;z-index:60;background:rgba(60,40,100,.4);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:28px}

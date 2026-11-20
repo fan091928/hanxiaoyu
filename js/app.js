@@ -10,6 +10,32 @@
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const KEY = 'hanxiaoyu_v1';
 
+  /* ---------- 视口高度自适应（iPhone / 微信 web-view 消除底部空隙） ----------
+     用 visualViewport（浏览器真实可视区，已扣除地址栏/键盘）设定 body 高度，
+     .app 高度 100% 跟随 body。这样底部导航严格贴合屏幕，不会露出多余空隙。 */
+  function fitViewport() {
+    // 桌面预览(宽屏)保留原有圆角预览高度，不做视觉视口贴合
+    if (window.innerWidth >= 500) {
+      document.body.style.height = '';
+      const dApp = $('#app'); if (dApp) dApp.style.height = '';
+      return;
+    }
+    const vv = window.visualViewport;
+    const h = vv && vv.height ? vv.height : window.innerHeight;
+    try {
+      document.body.style.height = h + 'px';
+      const app = $('#app');
+      if (app) app.style.height = h + 'px';
+    } catch (e) {}
+  }
+  fitViewport();
+  window.addEventListener('resize', fitViewport);
+  window.addEventListener('orientationchange', () => setTimeout(fitViewport, 120));
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', fitViewport);
+    window.visualViewport.addEventListener('scroll', fitViewport);
+  }
+
   const defaultState = () => ({
     checkins: [], goal: 30, challengeName: '我的韩语挑战',
     completedUnits: [], learnedWords: [], favorites: [], listenLogs: [],

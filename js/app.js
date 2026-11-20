@@ -10,16 +10,12 @@
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const KEY = 'hanxiaoyu_v1';
 
-  /* ---------- 真机视口/安全区精确适配（iPhone 14 Pro Max / 微信 web-view）----------
-     用真实可视高度写入 --app-h，让 app 严格贴合屏幕；用探针测量底部安全区
-     写入 --safe-b，导航栏据此下移贴底。彻底消除底部空白。 */
+  /* ---------- 真机安全区适配（iPhone 全系 / 微信 web-view）----------
+     布局已改用纯 CSS：.app 用 100dvh 由浏览器原生跟随地址栏收放，
+     .tabbar 作为 flex 子项自然贴底——不再用 JS 写高度，从根本上杜绝白边。
+     这里只保留"底部安全区探针"作为老系统 env() 支持不佳时的兜底。 */
   function fitScreen() {
     try {
-      const vv = window.visualViewport;
-      // 可视高度：优先 visualViewport，其次 innerHeight
-      const h = (vv && vv.height) ? vv.height : window.innerHeight;
-      document.documentElement.style.setProperty('--app-h', Math.round(h) + 'px');
-      // 底部安全区探针：用 CSS env() 读取真实值，避免硬编码
       const probe = document.createElement('div');
       probe.style.cssText = 'position:fixed;left:-9999px;bottom:0;width:1px;height:0;padding-bottom:env(safe-area-inset-bottom,0px)';
       document.body.appendChild(probe);
@@ -31,10 +27,6 @@
   fitScreen();
   window.addEventListener('resize', fitScreen);
   window.addEventListener('orientationchange', () => setTimeout(fitScreen, 150));
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', fitScreen);
-    window.visualViewport.addEventListener('scroll', fitScreen);
-  }
 
   const defaultState = () => ({
     checkins: [], goal: 30, challengeName: '我的韩语挑战',

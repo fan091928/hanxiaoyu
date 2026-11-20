@@ -664,6 +664,8 @@ select.modal-input{appearance:none;background:#f7f3ff url("data:image/svg+xml,%3
 .dialog-bubble.b .dialog-avatar{background:#fdeaf4;color:var(--pink)}
 .dialog-content{max-width:78%;background:#fff;border-radius:4px 14px 14px 14px;padding:10px 12px;box-shadow:0 2px 8px rgba(138,107,216,.07);border:1px solid var(--line)}
 .dialog-bubble.b .dialog-content{border-radius:14px 4px 14px 14px;background:var(--purple-tint)}
+/* 全段连读时高亮当前句，朗读到哪一句一目了然 */
+.dialog-bubble.reading .dialog-content{border-color:var(--purple);box-shadow:0 0 0 2px rgba(168,140,245,.28),0 4px 14px rgba(138,107,216,.16);background:#f3ecff}
 .dialog-ko{font-size:14px;font-weight:600;color:var(--purple-deep);line-height:1.5}
 .dialog-cn{font-size:12px;color:var(--sub);margin-top:5px}
 .dialog-roman{font-size:11px;color:var(--muted);margin-top:3px}

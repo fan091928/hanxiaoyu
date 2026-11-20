@@ -3,15 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<!-- 强制真机不缓存旧版：GitHub Pages 默认 max-age=600，iPhone 会一直用修复前的旧 CSS/JS 导致底部空白 -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <!-- 关键：全站不发送 Referer，否则百度/翻译 TTS 会返回空音频导致韩剧台词无法发音 -->
 <meta name="referrer" content="no-referrer">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#f3eeff">
 <title>韩小语 · 韩语学习工作台</title>
-<link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/ai-chat.css">
-<link rel="stylesheet" href="css/word-detail.css">
+<link rel="stylesheet" href="css/style.css?v=20261120a">
+<link rel="stylesheet" href="css/ai-chat.css?v=20261120a">
+<link rel="stylesheet" href="css/word-detail.css?v=20261120a">
 </head>
 <body>
 
@@ -445,22 +449,22 @@
 
 </div>
 
-<script src="js/data-core.js"></script>
-<script src="js/data-words.js"></script>
-<script src="js/data-scenes.js"></script>
-<script src="js/data-extra.js"></script>
-<script src="js/data-media.js"></script>
-<script src="js/data-material-content.js"></script>
-<script src="js/data-kugou.js"></script>
-<script src="js/data-drama.js"></script>
-<script src="js/data-honorific.js"></script>
-<script src="js/data-word-detail.js"></script>
-<script src="js/publisher.js"></script>
-<script src="js/store.js"></script>
-<script src="js/app.js"></script>
-<script src="js/word-examples.js"></script>
-<script src="js/word-detail.js"></script>
-<script src="js/ai-chat.js"></script>
+<script src="js/data-core.js?v=20261120a"></script>
+<script src="js/data-words.js?v=20261120a"></script>
+<script src="js/data-scenes.js?v=20261120a"></script>
+<script src="js/data-extra.js?v=20261120a"></script>
+<script src="js/data-media.js?v=20261120a"></script>
+<script src="js/data-material-content.js?v=20261120a"></script>
+<script src="js/data-kugou.js?v=20261120a"></script>
+<script src="js/data-drama.js?v=20261120a"></script>
+<script src="js/data-honorific.js?v=20261120a"></script>
+<script src="js/data-word-detail.js?v=20261120a"></script>
+<script src="js/publisher.js?v=20261120a"></script>
+<script src="js/store.js?v=20261120a"></script>
+<script src="js/app.js?v=20261120a"></script>
+<script src="js/word-examples.js?v=20261120a"></script>
+<script src="js/word-detail.js?v=20261120a"></script>
+<script src="js/ai-chat.js?v=20261120a"></script>
 <script>
   (function(){
     var aiBtn = document.getElementById('aiChatEntry');

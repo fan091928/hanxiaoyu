@@ -10,16 +10,12 @@
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const KEY = 'hanxiaoyu_v1';
 
-  /* ---------- 真机贴底锁定（iPhone 全系 / 微信 web-view）----------
-     双重保险：
-     1) 用 JS 把 --app-h 锁定为 window.innerHeight（真机最可靠的屏幕高度），
-        .app 优先用这个变量；CSS 的 100dvh 仅作 JS 失效时的回退。
-     2) 底部安全区用探针测量 env()，兼容老系统。
-     地址栏收放会触发 resize / visualViewport resize，实时重新锁定。 */
+  /* ---------- 真机安全区适配（iPhone 全系 / 微信 web-view）----------
+     布局高度完全交给 CSS 100dvh（浏览器原生跟随地址栏收放），
+     不再用 JS 写死 innerHeight——真机上 innerHeight 常小于物理屏幕，
+     写死会把 app 截断、下方露出断层。这里只用探针读底部安全区作兜底。 */
   function fitScreen() {
     try {
-      const h = window.innerHeight || document.documentElement.clientHeight;
-      document.documentElement.style.setProperty('--app-h', Math.round(h) + 'px');
       const probe = document.createElement('div');
       probe.style.cssText = 'position:fixed;left:-9999px;bottom:0;width:1px;height:0;padding-bottom:env(safe-area-inset-bottom,0px)';
       document.body.appendChild(probe);
@@ -27,18 +23,10 @@
       probe.remove();
       document.documentElement.style.setProperty('--safe-b', sb + 'px');
     } catch (e) {}
-    window.__hxyFit && window.__hxyFit();
   }
   fitScreen();
   window.addEventListener('resize', fitScreen);
   window.addEventListener('orientationchange', () => setTimeout(fitScreen, 150));
-  window.addEventListener('scroll', fitScreen, {passive:true});
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', fitScreen);
-    window.visualViewport.addEventListener('scroll', fitScreen);
-  }
-  // 首屏多打几次补丁，覆盖 iOS 地址栏延迟收起
-  setTimeout(fitScreen, 100); setTimeout(fitScreen, 400); setTimeout(fitScreen, 1000);
 
   const defaultState = () => ({
     checkins: [], goal: 30, challengeName: '我的韩语挑战',

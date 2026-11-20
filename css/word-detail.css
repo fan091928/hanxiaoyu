@@ -1,0 +1,85 @@
+/* 韩小语 · 词根串联精讲模块样式（淡紫波点风格） */
+.root-entry-card{width:100%;display:flex;align-items:center;gap:12px;text-align:left;background:linear-gradient(120deg,#efe8ff,#fbe9f2);border:1px solid #e6def8;border-radius:16px;padding:12px 14px;margin-bottom:14px;box-shadow:0 2px 10px rgba(138,107,216,.08);transition:transform .1s}
+.root-entry-card:active{transform:scale(.98)}
+.re-icon{width:44px;height:44px;flex-shrink:0;border-radius:13px;background:#fff;display:grid;place-items:center;font-size:23px}
+.re-body{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}
+.re-title{font-size:15px;font-weight:800;color:#7a5cc4;line-height:1.2}
+.re-sub{font-size:12px;color:#9a90b5;line-height:1.3}
+.re-arrow{font-size:26px;color:#c9b8ec;line-height:1}
+
+/* 全屏面板 */
+.root-panel{position:fixed;inset:0;z-index:88;background:#faf7ff;display:none;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px calc(env(safe-area-inset-bottom,0px) + 12px)}
+.root-panel.show{display:flex}
+.rp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.rp-back{font-size:14px;color:#8a6bd8;font-weight:700}
+.rp-title{font-size:18px;font-weight:800;color:#7a5cc4}
+.rp-close{width:32px;height:32px;border-radius:50%;background:#efe8ff;color:#8a6bd8;font-size:15px}
+.rp-tabs{display:flex;gap:8px;margin-bottom:12px}
+.rp-tab{flex:1;padding:9px;border-radius:12px;background:#efe8ff;color:#8a6bd8;font-size:14px;font-weight:700}
+.rp-tab.active{background:#8a6bd8;color:#fff}
+.rp-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:10px}
+.rp-empty{text-align:center;color:#a99fd0;padding:40px 0;font-size:14px}
+
+/* 词根选择 chips */
+.rp-rootchips{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px;margin-bottom:12px}
+.rp-rootchip{flex-shrink:0;min-width:52px;padding:8px 12px;border-radius:14px;background:#fff;border:1px solid #e6def8;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:18px;font-weight:800;color:#4b4560}
+.rp-rootchip small{font-size:10px;color:#a99fd0;font-weight:500}
+.rp-rootchip.active{background:#8a6bd8;color:#fff;border-color:#8a6bd8}
+.rp-rootchip.active small{color:#e8dcff}
+
+/* 词根说明卡 */
+.rp-intro{background:#fff;border-radius:18px;padding:16px;box-shadow:0 3px 12px rgba(138,107,216,.08);margin-bottom:16px}
+.rp-intro-title{font-size:17px;font-weight:800;color:#4b4560;display:flex;align-items:center;gap:10px}
+.rp-big-root{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#cdb9f7,#e8b8dc);color:#fff;font-size:26px}
+.rp-intro-text{font-size:14px;color:#6b6480;line-height:1.75;margin:12px 0}
+.rp-tip{background:#f4efff;border-radius:11px;padding:10px 12px;font-size:13px;color:#7a5cc4;line-height:1.6}
+.rp-section-label{font-size:15px;font-weight:800;color:#7a5cc4;margin:6px 2px 10px}
+
+/* 单词卡 */
+.rp-words{display:flex;flex-direction:column;gap:10px}
+.rp-word{background:#fff;border-radius:16px;box-shadow:0 2px 10px rgba(138,107,216,.07);overflow:hidden}
+.rp-word-head{display:flex;align-items:center;justify-content:space-between;padding:14px 15px;gap:8px}
+.rp-word-main{min-width:0}
+.rp-ko{font-size:20px;font-weight:800;color:#4b4560;display:flex;align-items:center;gap:8px}
+.rp-say{font-size:16px;background:none}
+.rp-roman{font-size:12px;color:#a99fd0;margin-top:2px}
+.rp-cn{font-size:14px;color:#6b6480;margin-top:3px}
+.rp-expand{font-size:12px;color:#8a6bd8;font-weight:700;flex-shrink:0;background:#f4efff;border-radius:20px;padding:5px 10px}
+.rp-word-detail{padding:0 15px 15px;border-top:1px dashed #ece5f8;margin-top:2px;padding-top:12px}
+.rp-parts-label{font-size:13px;font-weight:700;color:#8a6bd8;margin:6px 0 8px}
+.rp-example-ko{font-size:16px;font-weight:700;color:#3d3752;line-height:1.6}
+.rp-example-cn{font-size:13px;color:#8e88a3;margin:4px 0 10px}
+.rp-parts{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:14px}
+.rp-part{display:inline-flex;flex-direction:column;align-items:center;gap:2px;padding:7px 10px;border-radius:11px;font-size:13px;font-weight:700;line-height:1.3}
+.rp-part b{font-size:10px;font-weight:700;opacity:.75}
+.rp-part-plus{color:#c9b8ec;font-weight:800}
+.rp-role-S{background:#e3f0ff;color:#3d7ac4}
+.rp-role-O{background:#fff0e0;color:#d18a3c}
+.rp-role-V{background:#fde8f0;color:#d4518a}
+.rp-role-L{background:#e6f7ee;color:#3a9e6e}
+.rp-role-M{background:#f0e9ff;color:#8a6bd8}
+.rp-relates{display:flex;flex-wrap:wrap;gap:7px}
+.rp-relate{font-size:12px;color:#7a5cc4;background:#f4efff;border-radius:20px;padding:5px 11px}
+
+/* 造句课 */
+.rp-guide-order{background:linear-gradient(135deg,#efe8ff,#fbe9f2);border-radius:14px;padding:14px;font-size:14px;color:#5a5470;line-height:1.7;font-weight:600;margin-bottom:16px}
+.rp-roles{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.rp-role-item{display:flex;align-items:center;gap:9px;background:#fff;border-radius:12px;padding:11px 12px;font-size:13px;color:#6b6480}
+.rp-role-item b{color:#4b4560;font-size:14px}
+.rp-role-badge{width:26px;height:26px;flex-shrink:0;border-radius:8px;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.rp-role-badge.rp-role-S{background:#3d7ac4}
+.rp-role-badge.rp-role-O{background:#d18a3c}
+.rp-role-badge.rp-role-V{background:#d4518a}
+.rp-role-badge.rp-role-L{background:#3a9e6e}
+.rp-role-badge.rp-role-M{background:#8a6bd8}
+.rp-guides{display:flex;flex-direction:column;gap:9px;margin-bottom:16px}
+.rp-guide-card{background:#fff;border-radius:13px;padding:13px 14px;box-shadow:0 2px 8px rgba(138,107,216,.06)}
+.rp-p-particle{font-size:17px;font-weight:800;color:#3d3752}
+.rp-p-particle span{font-size:12px;font-weight:600;color:#8a6bd8;background:#f4efff;border-radius:20px;padding:3px 9px;margin-left:6px;vertical-align:middle}
+.rp-p-rule{font-size:13px;color:#6b6480;margin:7px 0 4px;line-height:1.5}
+.rp-p-ex{font-size:12px;color:#a99fd0}
+.rp-guide-demo{background:#fff;border-radius:16px;padding:16px;box-shadow:0 2px 10px rgba(138,107,216,.07)}
+.rp-guide-demo .rp-section-label{margin-top:0}
+.rp-demo-ko{font-size:18px;font-weight:800;color:#3d3752;line-height:1.6}
+.rp-demo-cn{font-size:13px;color:#8e88a3;margin:4px 0 12px}
+.rp-demo-parts{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:12px}

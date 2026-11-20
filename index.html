@@ -11,6 +11,7 @@
 <title>韩小语 · 韩语学习工作台</title>
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/ai-chat.css">
+<link rel="stylesheet" href="css/word-detail.css">
 </head>
 <body>
 
@@ -108,14 +109,22 @@
 
     <!-- ========== 打卡 ========== -->
     <section class="page" id="page-checkin">
-      <div class="checkin-hero">
-        <div class="hero-deco">🎀</div>
-        <p class="hero-label">坚持是一件很酷的事</p>
-        <button class="checkin-btn" id="checkinBtn">
-          <span class="cb-icon">📅</span>
-          <span class="cb-text">今日打卡</span>
+      <div class="checkin-top-row">
+        <div class="checkin-hero">
+          <div class="hero-deco">🎀</div>
+          <p class="hero-label">坚持是一件很酷的事</p>
+          <button class="checkin-btn" id="checkinBtn">
+            <span class="cb-icon">📅</span>
+            <span class="cb-text">今日打卡</span>
+          </button>
+          <p class="hero-hint" id="heroHint">点击按钮，开启今天的学习吧</p>
+        </div>
+        <button class="ai-entry-card" id="aiChatEntry">
+          <span class="aie-icon">🤖</span>
+          <span class="aie-title">AI 韩语陪练</span>
+          <span class="aie-sub">聊天 · 纠错 · 打分</span>
+          <span class="aie-go">开始 ›</span>
         </button>
-        <p class="hero-hint" id="heroHint">点击按钮，开启今天的学习吧</p>
       </div>
 
       <div class="stat-row">
@@ -144,16 +153,6 @@
         <div class="calendar" id="calendar"></div>
         <p class="cal-legend"><span class="dot done"></span>已打卡 <span class="dot today"></span>今天</p>
       </div>
-
-      <!-- AI 韩语陪练入口 -->
-      <button class="ai-entry-card" id="aiChatEntry">
-        <span class="aie-icon">🤖</span>
-        <span class="aie-body">
-          <span class="aie-title">AI 韩语陪练</span>
-          <span class="aie-sub">和 AI 用韩语聊天 · 纠错打分 · 生成文字版</span>
-        </span>
-        <span class="aie-arrow">›</span>
-      </button>
     </section>
 
     <!-- ========== 词典 ========== -->
@@ -162,6 +161,14 @@
         <div class="dict-badge">📖 TOPIK 1-6 级完整词库</div>
         <div class="dict-total" id="dictTotalCount">2048 词</div>
       </div>
+      <button class="root-entry-card" id="rootEntryBtn">
+        <span class="re-icon">🔗</span>
+        <span class="re-body">
+          <span class="re-title">词根串联精讲 · 学会自己造句</span>
+          <span class="re-sub">词根串记 · 例句主谓宾拆解 · 关联词</span>
+        </span>
+        <span class="re-arrow">›</span>
+      </button>
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
         <input type="text" id="dictSearch" class="search-input" placeholder="搜索韩语单词 / 中文 / 罗马音">
@@ -444,14 +451,18 @@
 <script src="js/data-kugou.js"></script>
 <script src="js/data-drama.js"></script>
 <script src="js/data-honorific.js"></script>
+<script src="js/data-word-detail.js"></script>
 <script src="js/publisher.js"></script>
 <script src="js/store.js"></script>
 <script src="js/app.js"></script>
 <script src="js/ai-chat.js"></script>
+<script src="js/word-detail.js"></script>
 <script>
   (function(){
-    var btn = document.getElementById('aiChatEntry');
-    if(btn) btn.addEventListener('click', function(){ window.AIChat && window.AIChat.open(); });
+    var aiBtn = document.getElementById('aiChatEntry');
+    if(aiBtn) aiBtn.addEventListener('click', function(){ window.AIChat && window.AIChat.open(); });
+    var rootBtn = document.getElementById('rootEntryBtn');
+    if(rootBtn) rootBtn.addEventListener('click', function(){ window.WordDetail && window.WordDetail.open(); });
   })();
 </script>
 </body>

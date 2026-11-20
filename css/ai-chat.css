@@ -1,12 +1,11 @@
 /* 韩小语 · AI 韩语陪练面板样式（淡紫波点风格 · 适配放大字号） */
-/* 打卡页入口卡片 */
-.ai-entry-card{width:100%;display:flex;align-items:center;gap:12px;text-align:left;background:#fff;border:1px solid var(--line,#eee9f8);border-radius:16px;padding:14px 14px;margin-top:14px;box-shadow:0 2px 8px rgba(138,107,216,.06);transition:transform .1s}
-.ai-entry-card:active{transform:scale(.98)}
-.aie-icon{width:46px;height:46px;flex-shrink:0;border-radius:13px;background:linear-gradient(135deg,#f0e9ff,#fbe9f2);display:grid;place-items:center;font-size:24px}
-.aie-body{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}
-.aie-title{font-size:16px;font-weight:800;color:#8a6bd8}
-.aie-sub{font-size:12px;color:#8e88a3;line-height:1.4}
-.aie-arrow{font-size:26px;color:#c9b8ec;line-height:1}
+/* 打卡页入口卡片（与打卡按钮并排各占一半） */
+.ai-entry-card{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;background:linear-gradient(140deg,#e3d4fb,#f5d0e6);border-radius:22px;padding:16px 8px 14px;box-shadow:var(--shadow);transition:transform .1s;overflow:hidden}
+.ai-entry-card:active{transform:scale(.96)}
+.aie-icon{width:60px;height:60px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:30px;box-shadow:0 6px 18px rgba(110,70,180,.18);margin:auto}
+.aie-title{font-size:14px;font-weight:800;color:#7a5cc4;line-height:1.2}
+.aie-sub{font-size:11px;color:#8a6bd8;opacity:.85;line-height:1.3}
+.aie-go{font-size:11px;font-weight:700;color:#fff;background:#9b7ce0;border-radius:20px;padding:3px 12px;margin-top:6px}
 .ai-chat-panel{position:fixed;inset:0;z-index:90;background:#faf7ff;display:none;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px calc(env(safe-area-inset-bottom,0px) + 12px)}
 .ai-chat-panel.show{display:flex}
 .aic-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}

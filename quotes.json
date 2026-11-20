@@ -1,0 +1,13 @@
+{
+  "updated": "2026-11-20",
+  "note": "韩语名言金句库。可通过网络更新：替换本文件或配置远程 URL 即可新增金句，应用启动时自动拉取并按每日零点轮换。",
+  "quotes": [
+    { "ko": "백년하청", "cn": "百年河清（比喻很难实现的愿望）", "roman": "baengnyeonhacheong", "from": "韩国成语" },
+    { "ko": "가는 말이 고와야 오는 말이 곱다.", "cn": "说出的话美，收回的话才美（礼尚往来）", "roman": "ganeun mari gowaya oneun mari gopda", "from": "韩国谚语" },
+    { "ko": "등잔 밑이 어둡다.", "cn": "灯下黑（最熟悉的地方反而容易疏忽）", "roman": "deungjan miti eopda", "from": "韩国谚语" },
+    { "ko": "공든 탑이 무너진다.", "cn": "功夫到了塔也会倒（功亏一篑）", "roman": "gongdeun tabi muneojinda", "from": "韩国谚语" },
+    { "ko": "오늘의 실수가 내일의 지혜가 된다.", "cn": "今天的失误成为明日的智慧。", "roman": "oneurui silsuga naeirui jihyega doenda", "from": "励志金句" },
+    { "ko": "마음이 따뜻하면 세상도 따뜻하다.", "cn": "心若温暖，世界也温暖。", "roman": "maeumi ttatteuthamyeon segando ttatteuthada", "from": "励志金句" },
+    { "ko": "작은 친절이 큰 기적을 만든다.", "cn": "小小的善意创造大大的奇迹。", "roman": "jageun chinjeoli keun gijeogeul mandeunda", "from": "励志金句" }
+  ]
+}

@@ -1,29 +1,6 @@
 /* ============================================================
    韩小语 · 交互逻辑
    ============================================================ */
-
-/* ---------- PWA 独立模式自绘状态栏 ----------
-   仅"添加到主屏幕"全屏运行时：navigator.standalone(iOS Safari) 或
-   display-mode:standalone(Android/标准) 为 true，给 html 加 .hxy-standalone，
-   CSS 才会显示页面自绘的顶部状态栏（时间+灵动岛+信号电池），占住安全区那一栏。
-   Safari 普通标签 / 微信 web-view 两者皆 false，自绘栏隐藏，用系统真状态栏，绝不重复。 */
-(function () {
-  try {
-    var isStandalone = (navigator.standalone === true) ||
-      (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
-    if (isStandalone) document.documentElement.classList.add('hxy-standalone');
-    var el = document.getElementById('hxysbTime');
-    function tick() {
-      if (!el) return;
-      var d = new Date(), h = d.getHours(), m = d.getMinutes();
-      el.textContent = h + ':' + (m < 10 ? '0' : '') + m;
-    }
-    tick();
-    setInterval(tick, 10000);
-    document.addEventListener('visibilitychange', function () { if (!document.hidden) tick(); });
-  } catch (e) {}
-})();
-
 (function () {
   'use strict';
 

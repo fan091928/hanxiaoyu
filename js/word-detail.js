@@ -55,8 +55,9 @@
 
   function partsHtml(parts){
     return (parts||[]).map(function(p,i){
+      var mean = p.mean ? '<em>'+esc(p.mean)+'</em>' : '';
       return (i?'<span class="rp-part-plus">+</span>':'')+
-        '<span class="rp-part rp-role-'+p.role+'"><b>'+esc(p.roleCn||p.role)+'</b>'+esc(p.w)+'</span>';
+        '<span class="rp-part rp-role-'+p.role+'"><b>'+esc(p.roleCn||p.role)+'</b><span>'+esc(p.w)+'</span>'+mean+'</span>';
     }).join('');
   }
   function sayBtn(text){ return '<button class="rp-say" data-say="'+esc(text)+'">🔊</button>'; }
@@ -188,36 +189,31 @@
         <button class="wd-close" id="wdClose">✕</button>
       </div>
       <div class="wd-hero">
-        <div class="wd-word-row">
-          <div class="wd-word">${esc(w.ko)}</div>
-          <button class="wd-play" id="wdPlay">▶</button>
-        </div>
+        <div class="wd-word">${esc(w.ko)}</div>
         <div class="wd-roman">${esc(w.roman||'')}</div>
         <div class="wd-meaning">${esc(w.cn||'')}</div>
         <div class="wd-pos">${esc(posName)}</div>
+        <button class="wd-play" id="wdPlay">🔊 <span>朗读单词</span></button>
       </div>
-      <div class="wd-section">
-        <div class="wd-sec-title">📝 例句 <span class="wd-sec-hint">点击朗读</span></div>
+      <div class="wd-section wd-example-sec">
+        <div class="wd-sec-title">📝 日常例句 <span class="wd-sec-hint">点句子朗读</span></div>
         <div class="wd-example">
-          <div class="wd-ex-ko">${esc(ex.ko)} <button class="wd-say" data-say="${esc(ex.ko)}">🔊</button></div>
+          <div class="wd-ex-ko" data-say="${esc(ex.ko)}">${esc(ex.ko)} <span class="wd-mini-say">🔊</span></div>
           <div class="wd-ex-cn">${esc(ex.cn)}</div>
         </div>
-      </div>
-      <div class="wd-section">
-        <div class="wd-sec-title">🧩 主谓宾拆解</div>
+        <div class="wd-split-line"></div>
+        <div class="wd-sec-title wd-sec-title-sm">🧩 句子拆解（主谓宾）</div>
         <div class="wd-parts">${partsHtml(ex.parts)}</div>
         ${ex.tip?'<div class="wd-tip">💡 '+esc(ex.tip)+'</div>':''}
       </div>
-      <div class="wd-section">
-        <div class="wd-sec-title">🔗 串联记忆</div>
+      <div class="wd-section wd-relate-sec">
+        <div class="wd-sec-title">🔗 关联词</div>
         <div class="wd-relate">${relateOf(w)}</div>
-      </div>
-      <button class="wd-speak-all" id="wdSpeakAll">▶ 连读：单词 + 例句</button>`;
+      </div>`;
     detail.classList.add('show');
     detail.querySelector('#wdClose').onclick=closeWord;
     detail.querySelector('#wdPlay').onclick=function(e){ say(w.ko,e); };
-    card.querySelectorAll('.wd-say').forEach(function(b){ b.onclick=function(e){ say(b.dataset.say,e); }; });
-    detail.querySelector('#wdSpeakAll').onclick=function(e){ say(w.ko+'. '+ex.ko,e); };
+    card.querySelectorAll('[data-say]').forEach(function(b){ b.onclick=function(e){ say(b.dataset.say,e); }; });
   }
   function closeWord(){ if(detail) detail.classList.remove('show'); }
 
@@ -228,10 +224,25 @@
     return'名词';
   }
   function relateOf(w){
-    var rel=[], gs=groups();
-    gs.forEach(function(g){ g.words.forEach(function(x){ if(x.ko!==w.ko && (x.ko.slice(-1)===w.ko.slice(-1) || x.cn===w.cn)) rel.push(x.ko+' '+x.cn); }); });
+    var rel=[], seen={};
+    var last=w.ko.slice(-1), first=w.ko.slice(0,1);
+    // 优先从词根精讲组里找同部件词
+    groups().forEach(function(g){ g.words.forEach(function(x){
+      if(x.ko!==w.ko && (x.ko.slice(-1)===last || x.cn===w.cn) && !seen[x.ko]){ seen[x.ko]=1; rel.push(x.ko+' '+x.cn); }
+    }); });
+    // 再从完整词库按「同类别 + 同尾字/首字」补充
+    var all=(typeof TOPIK_WORDS!=='undefined')?TOPIK_WORDS:[];
+    all.forEach(function(x){
+      if(!x||!x.ko||x.ko===w.ko||seen[x.ko]) return;
+      var sameCat = w.cat && x.cat===w.cat;
+      var sameTail = x.ko.slice(-1)===last && last!=='다';
+      var sameHead = x.ko.slice(0,1)===first;
+      if((sameCat && (sameTail||sameHead||rel.length<3)) || sameTail){
+        seen[x.ko]=1; rel.push(x.ko+' '+(x.cn||''));
+      }
+    });
     if(!rel.length){ rel=[w.ko+' '+w.cn]; }
-    return rel.slice(0,5).map(function(r){return '<span class="rp-relate">'+esc(r)+'</span>';}).join('');
+    return rel.slice(0,6).map(function(r){return '<span class="rp-relate">'+esc(r)+'</span>';}).join('');
   }
 
   global.WordDetail={ open:open, close:close, openWord:openWord, closeWord:closeWord };

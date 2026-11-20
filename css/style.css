@@ -422,10 +422,15 @@ button{cursor:pointer}
   backdrop-filter:blur(10px);border-top:1px solid var(--line);
   isolation:isolate;
 }
-/* 手机端固定到视口底部，宽度受限于 app */
+/* 手机端：导航栏用 fixed 钉在视口物理底部，不依赖 app 高度计算。
+   PWA 全屏 / 微信 web-view / Safari 三种环境下 innerHeight、dvh 各不相同，
+   若导航作为 flex 子项跟随 app 高度，一旦高度算小就会悬空留白；
+   fixed bottom:0 始终贴视口底，彻底消除底部空白。 */
 @media(max-width:499px){
-  .tabbar{position:relative;z-index:30;width:100%;max-width:none;margin:0;
+  .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;width:100%;max-width:none;margin:0;
     box-shadow:0 -4px 18px rgba(138,107,216,.08);border-radius:0}
+  /* 内容区给固定导航栏留出空间，避免被遮挡 */
+  .page-wrap{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
 }
 .tab-item{position:relative;z-index:1;flex:1;height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;color:var(--muted);font-weight:600;transition:.15s}
 .tab-item .ti-icon{font-size:27px;line-height:1;filter:grayscale(1);opacity:.6;transition:.15s}

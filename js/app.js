@@ -167,13 +167,24 @@
   }
   window.__speak = speak;
 
+  // 按文本长度估算音频播放上限（毫秒）——仅作 onended 不触发时的兜底，
+  // 绝不再用固定 8 秒把正在播放的长句掐断（那正是"跳句/时断时续"的根因）。
+  function estSpeakMs(text) {
+    const n = Array.from(text || '').length;
+    return Math.max(6000, n * 750 + 3500);
+  }
   // 带"播放结束回调"的发音——用于全段连读串联（多源降级 + no-referrer）
-  // 返回当前 audio 对象（若走在线音频），失败回退时返回 null
+  // 修复要点：
+  //  1) 音频一旦 onplaying 真正开播，立刻清除"卡住兜底"定时器，播放中绝不被超时切走；
+  //  2) "卡住兜底"只负责 3 秒内迟迟不播的情况，切换下一个音源；
+  //  3) "最长兜底"按句长动态计算，仅当 onended 偶发不触发（iOS 微信）时收尾，避免卡死；
+  //  4) done() 加 finished 幂等锁，回调只会触发一次，不会跳句或重复。
   function speakWithEnd(text, rate, onEnd) {
     if (!text) { if (onEnd) onEnd(); return null; }
     const candidates = ttsCandidates(text, rate);
-    let idx = 0, firstAudio = null;
-    function done() { if (onEnd) onEnd(); }
+    let idx = 0, firstAudio = null, finished = false;
+    const maxWait = estSpeakMs(text);
+    function done() { if (finished) return; finished = true; if (onEnd) onEnd(); }
     function webFallback() {
       try { speechSynthesis.cancel(); } catch (e) {}
       try {
@@ -183,7 +194,7 @@
         let fired = false;
         const fin = () => { if (!fired) { fired = true; clearTimeout(ft); done(); } };
         u.onend = fin; u.onerror = fin;
-        const ft = setTimeout(fin, 6000);
+        const ft = setTimeout(fin, estSpeakMs(text));
         speechSynthesis.speak(u);
       } catch (e) { done(); }
     }
@@ -191,23 +202,41 @@
       if (idx >= candidates.length) { webFallback(); return; }
       const url = candidates[idx++];
       try {
-        if (audioPlayer) { audioPlayer.pause(); audioPlayer = null; }
+        if (audioPlayer) { try { audioPlayer.pause(); } catch (e) {} audioPlayer = null; }
         const a = newAudioNoRef(url);
         audioPlayer = a;
         if (!firstAudio) firstAudio = a;
-        let advanced = false;
-        const advance = () => { if (advanced) return; advanced = true; clearTimeout(t); done(); };
-        const t = setTimeout(() => { if (!advanced) { advanced = true; clearTimeout(a._ct); tryNext(); } }, 8000);
-        a._ct = t;
-        a.onended = advance;
-        a.onerror = () => { if (!advanced) { advanced = true; clearTimeout(t); tryNext(); } };
-        a.onplaying = () => { realVoiceOK = true; };
+        let stuckTimer = null, maxTimer = null;
+        const clearAll = () => {
+          if (stuckTimer) { clearTimeout(stuckTimer); stuckTimer = null; }
+          if (maxTimer) { clearTimeout(maxTimer); maxTimer = null; }
+        };
+        // 卡住兜底：3 秒内音频还没真正开播，才切换下一个音源
+        stuckTimer = setTimeout(() => {
+          if (a.paused || a.readyState < 3) { clearAll(); tryNext(); }
+        }, 3000);
+        // 最长兜底：仅当 onended 未触发时用估算时长收尾
+        maxTimer = setTimeout(() => { clearAll(); done(); }, maxWait);
+        a.onplaying = () => { realVoiceOK = true; if (stuckTimer) { clearTimeout(stuckTimer); stuckTimer = null; } };
+        a.onended = () => { clearAll(); done(); };
+        a.onerror = () => { clearAll(); tryNext(); };
         const p = a.play();
         if (p && p.catch) p.catch(() => {});
       } catch (e) { tryNext(); }
     }
     tryNext();
     return firstAudio;
+  }
+  // 预加载下一句音频：提前把接下来 2 句的音频请求出去并放进浏览器缓存，
+  // 轮到播放时秒开，消除全段连读时句与句之间的网络等待空档。
+  function preloadLines(lines, from) {
+    for (let j = from; j < Math.min(from + 2, lines.length); j++) {
+      try {
+        const a = newAudioNoRef(ttsUrlBaidu(lines[j].ko, 1));
+        a.preload = 'auto';
+        a.load();
+      } catch (e) {}
+    }
   }
 
   /* ---------- 日期 ---------- */
@@ -1053,16 +1082,37 @@
         const sel = $('#dramaScenes [data-scene-idx].active');
         const sceneIdx = sel ? +sel.dataset.sceneIdx : 0;
         const lines = (groups[sceneIdx] || groups[0]).dialog;
+        if (!lines || !lines.length) { toast('这段场景暂无台词'); return; }
         let i = 0;
         readAll._playing = true;
         readAll.textContent = '⏹ 停止连读';
+        // 高亮当前朗读的句子，让用户清楚听到哪一句、不会以为"跳过"
+        const highlight = (ko) => {
+          $$('#dramaDialog .dialog-play').forEach(x => x.classList.remove('playing'));
+          const btn = $$('#dramaDialog [data-say]').find(b => b.dataset.say === ko);
+          if (btn) {
+            btn.classList.add('playing');
+            const bubble = btn.closest('.dialog-bubble');
+            if (bubble) bubble.classList.add('reading');
+          }
+        };
         const playNext = () => {
-          if (!readAll._playing || i >= lines.length) { stopReadingAll(); if (i >= lines.length) toast('✅ 全段连读完成'); return; }
+          if (!readAll._playing) return;
+          if (i >= lines.length) {
+            $$('#dramaDialog .dialog-bubble').forEach(x => x.classList.remove('reading'));
+            $$('#dramaDialog .dialog-play').forEach(x => x.classList.remove('playing'));
+            stopReadingAll(); toast('✅ 全段连读完成'); return;
+          }
           const line = lines[i];
           i++;
-          const go = () => { setTimeout(() => { if (readAll._playing) playNext(); }, 350); };
-          speakWithEnd(line.ko, 1, go);
+          highlight(line.ko);
+          preloadLines(lines, i);          // 提前缓冲接下来的两句
+          speakWithEnd(line.ko, 1, () => {
+            // 上一句真正结束后立即接下一句；仅用很短间隔避免音频引擎抢播
+            setTimeout(() => { if (readAll._playing) playNext(); }, 90);
+          });
         };
+        preloadLines(lines, 0);
         playNext();
         toast('🔊 开始全段连读，再点一次可停止');
       };

@@ -1,0 +1,50 @@
+/* 韩小语 · AI 韩语陪练面板样式（淡紫波点风格 · 适配放大字号） */
+/* 打卡页入口卡片 */
+.ai-entry-card{width:100%;display:flex;align-items:center;gap:12px;text-align:left;background:#fff;border:1px solid var(--line,#eee9f8);border-radius:16px;padding:14px 14px;margin-top:14px;box-shadow:0 2px 8px rgba(138,107,216,.06);transition:transform .1s}
+.ai-entry-card:active{transform:scale(.98)}
+.aie-icon{width:46px;height:46px;flex-shrink:0;border-radius:13px;background:linear-gradient(135deg,#f0e9ff,#fbe9f2);display:grid;place-items:center;font-size:24px}
+.aie-body{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}
+.aie-title{font-size:16px;font-weight:800;color:#8a6bd8}
+.aie-sub{font-size:12px;color:#8e88a3;line-height:1.4}
+.aie-arrow{font-size:26px;color:#c9b8ec;line-height:1}
+.ai-chat-panel{position:fixed;inset:0;z-index:90;background:#faf7ff;display:none;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px calc(env(safe-area-inset-bottom,0px) + 12px)}
+.ai-chat-panel.show{display:flex}
+.aic-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.aic-title{font-size:20px;font-weight:800;color:#8a6bd8}
+.aic-head-btns{display:flex;gap:8px;align-items:center}
+.aic-close,.aic-key-btn{width:36px;height:36px;border-radius:50%;background:#efe8ff;color:#8a6bd8;font-size:16px;display:grid;place-items:center}
+.aic-key-btn{background:#f4efff}
+.aic-tipbar{font-size:13px;color:#8e88a3;background:#f0e9ff;border-radius:12px;padding:8px 13px;margin-bottom:10px}
+.aic-msg{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:11px;padding:4px 2px}
+.aic-bubble{max-width:88%;padding:12px 14px;border-radius:16px;line-height:1.65;box-shadow:0 2px 8px rgba(138,107,216,.08);word-break:break-word}
+.aic-bubble.me{align-self:flex-end;background:#8a6bd8;color:#fff;border-bottom-right-radius:5px;font-size:15px}
+.aic-bubble.ai{align-self:flex-start;background:#fff;border-bottom-left-radius:5px}
+.aic-ko{font-size:17px;font-weight:700;color:#4b4560}
+.aic-cn{font-size:14px;color:#6b6480;margin-top:4px}
+.aic-roman{font-size:12px;color:#a99fd0;margin-top:3px}
+.aic-score{font-size:13px;color:#8a6bd8;background:#f4efff;border-radius:10px;padding:6px 9px;margin-top:7px}
+.aic-score b{font-size:16px;color:#e35d8f}
+.aic-tools{display:flex;gap:8px;margin:10px 0}
+.aic-tools button{flex:1;padding:11px;border-radius:13px;font-size:14px;font-weight:700;background:#efe8ff;color:#8a6bd8}
+.aic-mic{background:#fbe9f2!important;color:#e35d8f!important}
+.aic-input-row{display:flex;gap:8px}
+.aic-input-row input{flex:1;background:#fff;border:1px solid #eee9f8;border-radius:14px;padding:13px;font-size:16px}
+.aic-input-row button{padding:0 22px;border-radius:14px;background:#8a6bd8;color:#fff;font-weight:700;font-size:15px}
+.aic-status{font-size:13px;color:#e35d8f;text-align:center;min-height:17px;margin-top:6px}
+
+/* ---------- 密钥设置视图 ---------- */
+.aic-keyview{position:absolute;inset:0;z-index:5;background:#faf7ff;display:none;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+.aic-keyview.show{display:flex}
+.aic-key-card{width:100%;max-width:400px;background:#fff;border-radius:20px;padding:24px 20px;box-shadow:0 12px 40px rgba(138,107,216,.14);text-align:center}
+.aic-key-icon{font-size:38px;margin-bottom:6px}
+.aic-key-title{font-size:20px;font-weight:800;color:#8a6bd8;margin-bottom:10px}
+.aic-key-desc{font-size:14px;color:#6b6480;line-height:1.7;margin-bottom:14px;text-align:left}
+.aic-key-desc b{color:#e35d8f}
+.aic-key-steps{background:#faf6ff;border-radius:14px;padding:12px 14px;text-align:left;font-size:13px;color:#5a5470;line-height:1.9;margin-bottom:14px}
+.aic-key-steps a{color:#8a6bd8;font-weight:700;text-decoration:underline}
+.aic-key-steps code{background:#efe8ff;color:#8a6bd8;padding:1px 5px;border-radius:5px;font-size:12px}
+.aic-key-input{width:100%;box-sizing:border-box;background:#fff;border:1px solid #e6def8;border-radius:13px;padding:13px;font-size:15px;margin-bottom:12px}
+.aic-key-actions{display:flex;gap:8px}
+.aic-key-save{flex:2;padding:13px;border-radius:13px;background:#8a6bd8;color:#fff;font-weight:800;font-size:15px}
+.aic-key-clear{flex:1;padding:13px;border-radius:13px;background:#f6eef2;color:#e35d8f;font-weight:700;font-size:14px}
+.aic-key-note{font-size:12px;color:#a99fd0;line-height:1.6;margin-top:14px}

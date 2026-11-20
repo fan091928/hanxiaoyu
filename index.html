@@ -10,6 +10,7 @@
 <meta name="theme-color" content="#f3eeff">
 <title>韩小语 · 韩语学习工作台</title>
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/ai-chat.css">
 </head>
 <body>
 
@@ -143,6 +144,16 @@
         <div class="calendar" id="calendar"></div>
         <p class="cal-legend"><span class="dot done"></span>已打卡 <span class="dot today"></span>今天</p>
       </div>
+
+      <!-- AI 韩语陪练入口 -->
+      <button class="ai-entry-card" id="aiChatEntry">
+        <span class="aie-icon">🤖</span>
+        <span class="aie-body">
+          <span class="aie-title">AI 韩语陪练</span>
+          <span class="aie-sub">和 AI 用韩语聊天 · 纠错打分 · 生成文字版</span>
+        </span>
+        <span class="aie-arrow">›</span>
+      </button>
     </section>
 
     <!-- ========== 词典 ========== -->
@@ -436,5 +447,12 @@
 <script src="js/publisher.js"></script>
 <script src="js/store.js"></script>
 <script src="js/app.js"></script>
+<script src="js/ai-chat.js"></script>
+<script>
+  (function(){
+    var btn = document.getElementById('aiChatEntry');
+    if(btn) btn.addEventListener('click', function(){ window.AIChat && window.AIChat.open(); });
+  })();
+</script>
 </body>
 </html>

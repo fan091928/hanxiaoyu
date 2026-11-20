@@ -8,10 +8,12 @@
 .aie-go{font-size:11px;font-weight:700;color:#fff;background:#9b7ce0;border-radius:20px;padding:3px 12px;margin-top:6px}
 .ai-chat-panel{position:fixed;inset:0;z-index:90;background:#faf7ff;display:none;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px calc(env(safe-area-inset-bottom,0px) + 12px)}
 .ai-chat-panel.show{display:flex}
-.aic-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-.aic-title{font-size:20px;font-weight:800;color:#8a6bd8}
+.aic-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.aic-back{flex-shrink:0;padding:9px 13px;border-radius:12px;background:#efe8ff;color:#7a5cc4;font-size:14px;font-weight:800;white-space:nowrap}
+.aic-back:active{background:#e3d6ff}
+.aic-title{font-size:17px;font-weight:800;color:#8a6bd8;white-space:nowrap}
 .aic-head-btns{display:flex;gap:8px;align-items:center}
-.aic-close,.aic-key-btn{width:36px;height:36px;border-radius:50%;background:#efe8ff;color:#8a6bd8;font-size:16px;display:grid;place-items:center}
+.aic-close,.aic-key-btn{width:34px;height:34px;border-radius:50%;background:#efe8ff;color:#8a6bd8;font-size:15px;display:grid;place-items:center}
 .aic-key-btn{background:#f4efff}
 .aic-tipbar{font-size:13px;color:#8e88a3;background:#f0e9ff;border-radius:12px;padding:8px 13px;margin-bottom:10px}
 .aic-msg{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:11px;padding:4px 2px}
@@ -34,7 +36,8 @@
 /* ---------- 密钥设置视图 ---------- */
 .aic-keyview{position:absolute;inset:0;z-index:5;background:#faf7ff;display:none;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
 .aic-keyview.show{display:flex}
-.aic-key-card{width:100%;max-width:400px;background:#fff;border-radius:20px;padding:24px 20px;box-shadow:0 12px 40px rgba(138,107,216,.14);text-align:center}
+.aic-key-card{width:100%;max-width:400px;background:#fff;border-radius:20px;padding:24px 20px;box-shadow:0 12px 40px rgba(138,107,216,.14);text-align:center;position:relative}
+.aic-key-back{display:block;margin:0 0 14px 0}
 .aic-key-icon{font-size:38px;margin-bottom:6px}
 .aic-key-title{font-size:20px;font-weight:800;color:#8a6bd8;margin-bottom:10px}
 .aic-key-desc{font-size:14px;color:#6b6480;line-height:1.7;margin-bottom:14px;text-align:left}

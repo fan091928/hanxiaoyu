@@ -13,15 +13,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#f3eeff">
 <title>韩小语 · 韩语学习工作台</title>
-<link rel="stylesheet" href="css/style.css?v=20261120c">
-<link rel="stylesheet" href="css/ai-chat.css?v=20261120c">
-<link rel="stylesheet" href="css/word-detail.css?v=20261120c">
+<link rel="stylesheet" href="css/style.css?v=20261120d">
+<link rel="stylesheet" href="css/ai-chat.css?v=20261120d">
+<link rel="stylesheet" href="css/word-detail.css?v=20261120d">
 </head>
 <body>
 
 <!-- 真机适配诊断标签（红=检测到空白，绿=正常）-->
-<div id="hxyDebug" class="hxy-debug" style="display:none"></div>
-
 <div class="app" id="app">
 
   <!-- 背景装饰：波点 + SVG 蝴蝶结（不依赖 emoji 字体） -->
@@ -452,22 +450,22 @@
 
 </div>
 
-<script src="js/data-core.js?v=20261120c"></script>
-<script src="js/data-words.js?v=20261120c"></script>
-<script src="js/data-scenes.js?v=20261120c"></script>
-<script src="js/data-extra.js?v=20261120c"></script>
-<script src="js/data-media.js?v=20261120c"></script>
-<script src="js/data-material-content.js?v=20261120c"></script>
-<script src="js/data-kugou.js?v=20261120c"></script>
-<script src="js/data-drama.js?v=20261120c"></script>
-<script src="js/data-honorific.js?v=20261120c"></script>
-<script src="js/data-word-detail.js?v=20261120c"></script>
-<script src="js/publisher.js?v=20261120c"></script>
-<script src="js/store.js?v=20261120c"></script>
-<script src="js/app.js?v=20261120c"></script>
-<script src="js/word-examples.js?v=20261120c"></script>
-<script src="js/word-detail.js?v=20261120c"></script>
-<script src="js/ai-chat.js?v=20261120c"></script>
+<script src="js/data-core.js?v=20261120d"></script>
+<script src="js/data-words.js?v=20261120d"></script>
+<script src="js/data-scenes.js?v=20261120d"></script>
+<script src="js/data-extra.js?v=20261120d"></script>
+<script src="js/data-media.js?v=20261120d"></script>
+<script src="js/data-material-content.js?v=20261120d"></script>
+<script src="js/data-kugou.js?v=20261120d"></script>
+<script src="js/data-drama.js?v=20261120d"></script>
+<script src="js/data-honorific.js?v=20261120d"></script>
+<script src="js/data-word-detail.js?v=20261120d"></script>
+<script src="js/publisher.js?v=20261120d"></script>
+<script src="js/store.js?v=20261120d"></script>
+<script src="js/app.js?v=20261120d"></script>
+<script src="js/word-examples.js?v=20261120d"></script>
+<script src="js/word-detail.js?v=20261120d"></script>
+<script src="js/ai-chat.js?v=20261120d"></script>
 <script>
   (function(){
     var aiBtn = document.getElementById('aiChatEntry');
@@ -476,31 +474,6 @@
     if(rootBtn) rootBtn.addEventListener('click', function(){ window.WordDetail && window.WordDetail.open(); });
   })();
 
-  /* 真机适配诊断：实时显示屏幕/容器/导航的关键数值，用于排查底部白边 */
-  (function(){
-    var el=document.getElementById('hxyDebug');
-    function draw(){
-      if(!el) return;
-      var app=document.getElementById('app');
-      var tab=document.getElementById('tabbar');
-      var ih=window.innerHeight;
-      var vv=window.visualViewport;
-      var appH=app?Math.round(app.getBoundingClientRect().height):0;
-      var tabBottom=tab?Math.round(tab.getBoundingClientRect().bottom):0;
-      var gap=Math.round(ih-tabBottom);
-      var safeb=getComputedStyle(document.documentElement).getPropertyValue('--safe-b').trim();
-      var ua=navigator.userAgent;
-      var isWx=/MicroMessenger/i.test(ua)?'微信':'浏览器';
-      el.textContent='屏高:'+ih+' app:'+appH+' 导航底:'+tabBottom+' 空白:'+gap+'\n可视:'+(vv?Math.round(vv.height):'-')+' 安全区:'+safeb+' '+isWx;
-      el.className='hxy-debug'+(gap<=2?' ok':'');
-      el.style.display='block';
-    }
-    window.__hxyFit=draw;
-    draw();
-    setTimeout(draw,300); setTimeout(draw,1200);
-    window.addEventListener('resize',draw);
-    if(window.visualViewport){window.visualViewport.addEventListener('resize',draw);window.visualViewport.addEventListener('scroll',draw);}
-  })();
 </script>
 </body>
 </html>

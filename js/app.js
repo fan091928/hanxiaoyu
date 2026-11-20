@@ -176,7 +176,7 @@
     try {
       if (audioPlayer) { try { audioPlayer.pause(); } catch (e) {} audioPlayer = null; }
       const a = new Audio();
-      a.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261120j';
+      a.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261120k';
       a.preload = 'auto';
       a.playbackRate = rate || 1;
       audioPlayer = a;
@@ -184,7 +184,13 @@
       let done = false;
       const fin = () => { if (done) return; done = true; if (onEnd) onEnd(); };
       a.onended = fin;
-      a.onerror = () => { if (!done) { done = true; if (onEnd) onEnd(); } };
+      a.onerror = () => {
+        if (!done) {
+          done = true;
+          if (onEnd) onEnd();              // 连读：结束回调让下一句继续
+          else playRealAudio(text, rate);  // 逐句：本地音频缺失时降级在线音源
+        }
+      };
       const p = a.play();
       if (p && p.catch) p.catch(() => { /* 手势受限时降级 */ });
       return true;
@@ -1169,13 +1175,23 @@
       drawDramaDialog(groups[+b.dataset.sceneIdx]);
     });
   }
+  // 按剧目取男女主头像：有该剧映射就用对应剧照，否则回退通用头像
+  function dramaAvatar(drama, speaker) {
+    try {
+      const map = window.DRAMA_AVATARS || {};
+      const pair = map[drama];
+      const f = pair && (speaker === 'B' ? pair.f : pair.m);
+      if (f) return f;
+    } catch (e) {}
+    return 'img/avatars/' + (speaker === 'B' ? 'drama_female' : 'drama_male') + '.jpg';
+  }
   function drawDramaDialog(g) {
     if (!g) return;
     $('#dramaDialog').innerHTML = `
       <div class="drama-scene-title">💬 ${esc(g.theme)} · <span class="deg-tag deg-${g.level}">${{初:'初级',中:'中级',高:'高级'}[g.level]}</span></div>
       ${g.dialog.map((d, i) => `
         <div class="dialog-bubble ${i % 2 === 1 ? 'b' : ''}">
-          <div class="dialog-avatar"><img src="img/avatars/${d.speaker === 'B' ? 'drama_female' : 'drama_male'}.jpg?v=20261120j" alt="${esc(d.speaker)}"></div>
+          <div class="dialog-avatar"><img src="${dramaAvatar(g.drama, d.speaker)}?v=20261120k" alt="${esc(d.speaker)}"></div>
           <div class="dialog-content">
             <div class="dialog-ko" data-say="${esc(d.ko)}">${esc(d.ko)}</div>
             <div class="dialog-roman">${esc(d.roman)}</div>
@@ -2070,14 +2086,14 @@
       $$('#lyricScroll .lyric-line').forEach(x => x.classList.remove('picked'));
       el.classList.add('picked');
     });
-    // 自动跟随开关：默认关，开也只高亮当前句，绝不自动滚动
+    // 自动跟随开关：开启后歌词随播放进度平滑滚动；只滚歌词框内部，不影响页面其它点击
     const ft = $('#followToggle');
     if (ft) ft.onclick = () => {
       kpopFollow = !kpopFollow;
       ft.classList.toggle('on', kpopFollow);
       ft.textContent = kpopFollow ? '跟随:开' : '跟随:关';
       if (!kpopFollow) $$('#lyricScroll .lyric-line').forEach(x => x.classList.remove('active'));
-      toast(kpopFollow ? '已开启自动高亮（仍可自由滚动）' : '已关闭自动跟随');
+      toast(kpopFollow ? '已开启歌词自动滚动' : '已关闭自动跟随');
     };
 
     $$('#kpopScroll [data-ksay]').forEach(el => el.onclick = e => { e.stopPropagation(); speak(el.dataset.ksay, 0.95); });
@@ -2090,11 +2106,30 @@
     $('#kpopPrev').onclick = () => { if (at > 0) { stopSing(); stopKgClip(); openKpopSong(pool[at - 1].id); } };
     $('#kpopNext').onclick = () => { if (at >= 0 && at < pool.length - 1) { stopSing(); stopKgClip(); openKpopSong(pool[at + 1].id); } };
 
-    // 原声片段播放：只更新进度条 +（可选）高亮，不强制滚动
+    // 原声片段播放：更新进度条 + 高亮 +（跟随开启时）歌词平滑滚动
     if (kc && $('#kgPlay')) {
       const kgBtn = $('#kgPlay'), kgBar = $('#kgBar');
       const lyricLines = $$('#lyricScroll .lyric-line');
+      const lyricScroll = $('#lyricScroll');
       let lastActive = -1;
+      let userScrollingUntil = 0;   // 用户手动滑歌词后，短暂暂停自动滚动，避免打架
+      // 用户触摸/滚动歌词框：记录暂停时间点（不影响点击其它按钮——只监听歌词框本身）
+      if (lyricScroll) {
+        const markUserScroll = () => { userScrollingUntil = Date.now() + 3500; };
+        lyricScroll.addEventListener('touchstart', markUserScroll, { passive: true });
+        lyricScroll.addEventListener('wheel', markUserScroll, { passive: true });
+      }
+      // 只滚动歌词框内部 scrollTop，绝不动页面本体，故不阻挡任何其它点击
+      const scrollLyricTo = (idx) => {
+        if (!lyricScroll || !lyricLines[idx]) return;
+        const el = lyricLines[idx];
+        // 用相对视口差值计算，避免 offsetParent/contain 影响；只滚歌词框内部
+        const delta = (el.getBoundingClientRect().top - lyricScroll.getBoundingClientRect().top)
+          + lyricScroll.scrollTop - (lyricScroll.clientHeight - el.clientHeight) / 2;
+        const top = Math.max(0, delta);
+        try { lyricScroll.scrollTo({ top, behavior: 'smooth' }); }
+        catch (e) { lyricScroll.scrollTop = top; }
+      };
       kgBtn.onclick = () => {
         if (kgAudio && !kgAudio.paused && kgAudio._kgId === s.id) { stopKgClip(); return; }
         stopKgClip();
@@ -2114,7 +2149,9 @@
           }
           if (active !== lastActive) {
             lyricLines.forEach((el, i) => el.classList.toggle('active', i === active));
-            lastActive = active;                 // 仅高亮，不 scrollIntoView
+            // 跟随开启且用户未在手动滑歌词时，把当前句滚到歌词框中央
+            if (active >= 0 && Date.now() >= userScrollingUntil) scrollLyricTo(active);
+            lastActive = active;
           }
         };
         kgAudio.onended = () => { stopKgClip(); if (kgBar) kgBar.style.width = '0%'; lyricLines.forEach(el => el.classList.remove('active')); lastActive = -1; };

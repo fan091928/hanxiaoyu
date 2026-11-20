@@ -159,11 +159,43 @@
     }
     tryNext();
   }
+  // 本地 Edge 韩语女声(ko-KR-SunHiNeural)：自然、贴近生活、有感情。
+  // 若该台词已预生成 mp3，则优先播放本地音频（微信/PWA 稳定不依赖外网）。
+  function localVoiceUrl(text) {
+    try {
+      const map = window.DRAMA_VOICE_MAP;
+      const f = map && map[text];
+      if (f) return 'audio/drama/' + f;
+    } catch (e) {}
+    return null;
+  }
+  // 播放本地 Edge 女声；onEnd 结束回调；返回是否成功启动
+  function playLocalVoice(text, rate, onEnd) {
+    const url = localVoiceUrl(text);
+    if (!url) return false;
+    try {
+      if (audioPlayer) { try { audioPlayer.pause(); } catch (e) {} audioPlayer = null; }
+      const a = new Audio();
+      a.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261120j';
+      a.preload = 'auto';
+      a.playbackRate = rate || 1;
+      audioPlayer = a;
+      realVoiceOK = true;
+      let done = false;
+      const fin = () => { if (done) return; done = true; if (onEnd) onEnd(); };
+      a.onended = fin;
+      a.onerror = () => { if (!done) { done = true; if (onEnd) onEnd(); } };
+      const p = a.play();
+      if (p && p.catch) p.catch(() => { /* 手势受限时降级 */ });
+      return true;
+    } catch (e) { return false; }
+  }
   // 统一发音入口（兼容旧的 opts 参数，但忽略角色性别——全部使用清晰真声）
   function speak(text, rate = 1, opts = null) {
     if (!text) return;
     const r = (opts && opts.rate != null) ? opts.rate : rate;
-    playRealAudio(text, r);
+    if (playLocalVoice(text, r, null)) return;   // 优先本地 Edge 女声
+    playRealAudio(text, r);                       // 否则在线音源
   }
   window.__speak = speak;
 
@@ -181,6 +213,8 @@
   //  4) done() 加 finished 幂等锁，回调只会触发一次，不会跳句或重复。
   function speakWithEnd(text, rate, onEnd) {
     if (!text) { if (onEnd) onEnd(); return null; }
+    // 优先本地 Edge 女声（带结束回调，保证连读串联）
+    if (playLocalVoice(text, rate, onEnd)) return audioPlayer;
     const candidates = ttsCandidates(text, rate);
     let idx = 0, firstAudio = null, finished = false;
     const maxWait = estSpeakMs(text);
@@ -1141,20 +1175,32 @@
       <div class="drama-scene-title">💬 ${esc(g.theme)} · <span class="deg-tag deg-${g.level}">${{初:'初级',中:'中级',高:'高级'}[g.level]}</span></div>
       ${g.dialog.map((d, i) => `
         <div class="dialog-bubble ${i % 2 === 1 ? 'b' : ''}">
-          <div class="dialog-avatar">${d.speaker}</div>
+          <div class="dialog-avatar"><img src="img/avatars/${d.speaker === 'B' ? 'drama_female' : 'drama_male'}.jpg?v=20261120j" alt="${esc(d.speaker)}"></div>
           <div class="dialog-content">
-            <div class="dialog-ko" data-say="${esc(d.ko)}">${esc(d.ko)}<span class="sent-spk">🔊</span></div>
+            <div class="dialog-ko" data-say="${esc(d.ko)}">${esc(d.ko)}</div>
             <div class="dialog-roman">${esc(d.roman)}</div>
             <div class="dialog-cn">${esc(d.cn)}</div>
+            <span class="sent-spk" title="点击发音">🔊</span>
           </div>
         </div>`).join('')}`;
-    // 点整句即可发音（小喇叭只是提示，不用单独点它）
-    $$('#dramaDialog .dialog-ko[data-say]').forEach(b => b.onclick = () => {
-      $$('#dramaDialog .dialog-ko').forEach(x => x.classList.remove('playing'));
-      b.classList.add('playing');
-      speak(b.dataset.say, 1);
-      clearTimeout(b._pt);
-      b._pt = setTimeout(() => b.classList.remove('playing'), 3500);
+    // 点整句或右下角小喇叭都能发音
+    $$('#dramaDialog .dialog-ko[data-say]').forEach(b => {
+      const fire = () => {
+        $$('#dramaDialog .dialog-ko').forEach(x => x.classList.remove('playing'));
+        b.classList.add('playing');
+        const content = b.closest('.dialog-content');
+        if (content) { const sp = content.querySelector('.sent-spk'); if (sp) sp.classList.add('playing'); }
+        speak(b.dataset.say, 1);
+        clearTimeout(b._pt);
+        b._pt = setTimeout(() => {
+          b.classList.remove('playing');
+          if (content) { const sp = content.querySelector('.sent-spk'); if (sp) sp.classList.remove('playing'); }
+        }, 3500);
+      };
+      b.onclick = fire;
+      const content = b.closest('.dialog-content');
+      const spk = content && content.querySelector('.sent-spk');
+      if (spk) spk.onclick = fire;
     });
   }
 

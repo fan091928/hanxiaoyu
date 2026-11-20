@@ -256,17 +256,17 @@ button{cursor:pointer}
 /* ---------- 短句 ---------- */
 .daily-pick{background:linear-gradient(135deg,#e9dcff,#dceaff);border-radius:18px;padding:18px;position:relative;box-shadow:var(--shadow)}
 .dp-tag{font-size:12px;color:var(--purple-deep);font-weight:700}
-.dp-ko{font-size:22px;font-weight:700;margin-top:10px;line-height:1.5}
-.dp-roman{font-size:13px;color:var(--blue-deep);margin-top:4px}
-.dp-cn{font-size:14px;color:var(--sub);margin-top:6px;line-height:1.5}
+.dp-ko{font-size:20px;font-weight:700;margin-top:10px;line-height:1.5}
+.dp-roman{font-size:12px;color:var(--blue-deep);margin-top:4px}
+.dp-cn{font-size:13px;color:var(--sub);margin-top:6px;line-height:1.5}
 .dp-actions{display:flex;gap:8px;margin-top:12px}
 .dp-actions button{flex:1;font-size:13px;padding:7px 8px;border-radius:20px;background:#fff;font-weight:700}
 .sentence-list{display:flex;flex-direction:column;gap:8px}
 .sent-item{background:#fff;border-radius:15px;padding:15px 16px;box-shadow:0 2px 8px rgba(138,107,216,.06);border:1px solid var(--line)}
 .sent-scene{font-size:12px;color:var(--pink);font-weight:600}
-.sent-ko{font-size:18px;font-weight:700;margin-top:7px;line-height:1.6;letter-spacing:.3px}
-.sent-roman{font-size:13px;color:var(--blue-deep);margin-top:4px}
-.sent-cn{font-size:14px;color:var(--sub);margin-top:5px;line-height:1.55}
+.sent-ko{font-size:16px;font-weight:700;margin-top:7px;line-height:1.6;letter-spacing:.2px}
+.sent-roman{font-size:12px;color:var(--blue-deep);margin-top:4px}
+.sent-cn{font-size:13px;color:var(--sub);margin-top:5px;line-height:1.55}
 .sent-btns{display:flex;gap:8px;justify-content:space-between;margin-top:11px}
 .sent-btns button{flex:1;font-size:13px;padding:7px 8px;border-radius:18px;background:var(--purple-tint);color:var(--purple-deep);font-weight:700}
 
@@ -660,16 +660,18 @@ select.modal-input{appearance:none;background:#f7f3ff url("data:image/svg+xml,%3
 .drama-scene-title .deg-tag{font-size:11px}
 .dialog-bubble{display:flex;gap:8px;margin-bottom:10px;align-items:flex-start}
 .dialog-bubble.b{flex-direction:row-reverse}
-.dialog-avatar{width:30px;height:30px;flex-shrink:0;border-radius:50%;background:var(--purple-soft);color:var(--purple-deep);display:grid;place-items:center;font-size:12px;font-weight:700}
+.dialog-avatar{width:38px;height:38px;flex-shrink:0;border-radius:50%;background:var(--purple-soft);color:var(--purple-deep);display:grid;place-items:center;font-size:12px;font-weight:700;overflow:hidden;border:2px solid #fff;box-shadow:0 2px 8px rgba(138,107,216,.18)}
+.dialog-avatar img{width:100%;height:100%;object-fit:cover;object-position:center 30%}
 .dialog-bubble.b .dialog-avatar{background:#fdeaf4;color:var(--pink)}
-.dialog-content{max-width:78%;background:#fff;border-radius:4px 14px 14px 14px;padding:10px 12px;box-shadow:0 2px 8px rgba(138,107,216,.07);border:1px solid var(--line)}
+.dialog-content{position:relative;max-width:78%;background:#fff;border-radius:4px 14px 14px 14px;padding:10px 12px 20px;box-shadow:0 2px 8px rgba(138,107,216,.07);border:1px solid var(--line)}
 .dialog-bubble.b .dialog-content{border-radius:14px 4px 14px 14px;background:var(--purple-tint)}
 /* 全段连读时高亮当前句，朗读到哪一句一目了然 */
 .dialog-bubble.reading .dialog-content{border-color:var(--purple);box-shadow:0 0 0 2px rgba(168,140,245,.28),0 4px 14px rgba(138,107,216,.16);background:#f3ecff}
-.dialog-ko{font-size:16px;font-weight:700;color:var(--purple-deep);line-height:1.55;cursor:pointer;transition:color .15s}
+.dialog-ko{font-size:15px;font-weight:700;color:var(--purple-deep);line-height:1.55;cursor:pointer;transition:color .15s}
 .dialog-ko.playing{color:var(--pink)}
-.sent-spk{display:inline-block;font-size:13px;margin-left:6px;opacity:.6;vertical-align:middle}
-.dialog-ko.playing .sent-spk{opacity:1;animation:pulsePlay .8s ease-in-out infinite}
+/* 小喇叭固定在对话卡片右下角，点它或点句子都能发音 */
+.sent-spk{position:absolute;right:9px;bottom:5px;font-size:13px;opacity:.55;cursor:pointer;line-height:1}
+.sent-spk.playing{opacity:1;animation:pulsePlay .8s ease-in-out infinite}
 .dialog-cn{font-size:13px;color:var(--sub);margin-top:5px;line-height:1.5}
 .dialog-roman{font-size:12px;color:var(--muted);margin-top:3px}
 /* 媒体素材库仍用旧的小喇叭按钮 */
@@ -806,28 +808,27 @@ select.modal-input{appearance:none;background:#f7f3ff url("data:image/svg+xml,%3
 .cs-back{font-size:12px;color:var(--sub)}
 
 /* ============================================================
-   练习板块字体整体放大（每日短句/韩剧/四十音/敬语/单词背诵等）
-   用户反馈全站练习区字偏小，这里统一上调 1~2px，提升可读性。
+   练习板块字号微调：整体与其他模块协调，仅小幅上调、不过分放大
    ============================================================ */
-.subtab,.sound-tab{font-size:15px;padding:9px 15px}
-.mini-title{font-size:15px;margin:15px 4px 11px}
+.subtab,.sound-tab{font-size:14px;padding:8px 14px}
+.mini-title{font-size:14px;margin:14px 4px 10px}
 /* 四十音 */
-.sounds-intro b{font-size:16px}
-.sounds-intro p{font-size:13px}
-.sc-roman{font-size:12px}
+.sounds-intro b{font-size:15px}
+.sounds-intro p{font-size:12px}
+.sc-roman{font-size:11px}
 .sc-name,.sc-ex{font-size:11px}
-.group-label{font-size:14px}
-.combo-pick label{font-size:12px}
+.group-label{font-size:13px}
+.combo-pick label{font-size:11px}
 /* 敬语 */
-.honor-intro b{font-size:16px}
-.honor-intro p{font-size:13px}
-.honor-tab{font-size:14px}
+.honor-intro b{font-size:15px}
+.honor-intro p{font-size:12px}
+.honor-tab{font-size:13px}
 /* 单词背诵 / 测验 */
-.recite-toolbar,.recite-toolbar .mini-link{font-size:13px}
-.recite-filter select{font-size:14px}
-.quiz-hint{font-size:14px}
-.pron-intro{font-size:13px}
-.pron-option{font-size:16px}
+.recite-toolbar,.recite-toolbar .mini-link{font-size:12px}
+.recite-filter select{font-size:13px}
+.quiz-hint{font-size:13px}
+.pron-intro{font-size:12px}
+.pron-option{font-size:15px}
 /* 韩剧场景标题 / 程度标签 */
-.drama-scene-title{font-size:16px}
-.deg-tag{font-size:12px}
+.drama-scene-title{font-size:15px}
+.deg-tag{font-size:11px}

@@ -176,7 +176,7 @@
     try {
       if (audioPlayer) { try { audioPlayer.pause(); } catch (e) {} audioPlayer = null; }
       const a = new Audio();
-      a.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261120p';
+      a.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261120q';
       a.preload = 'auto';
       a.playbackRate = rate || 1;
       audioPlayer = a;
@@ -1198,7 +1198,7 @@
       <div class="drama-scene-title">💬 ${esc(g.theme)} · <span class="deg-tag deg-${g.level}">${{初:'初级',中:'中级',高:'高级'}[g.level]}</span></div>
       ${g.dialog.map((d, i) => `
         <div class="dialog-bubble ${i % 2 === 1 ? 'b' : ''}">
-          <div class="dialog-avatar"><img src="${dramaAvatar(g.drama, d.speaker)}?v=20261120p" alt="${esc(d.speaker)}"></div>
+          <div class="dialog-avatar"><img src="${dramaAvatar(g.drama, d.speaker)}?v=20261120q" alt="${esc(d.speaker)}"></div>
           <div class="dialog-content">
             <div class="dialog-ko" data-say="${esc(d.ko)}">${esc(d.ko)}</div>
             <div class="dialog-roman">${esc(d.roman)}</div>

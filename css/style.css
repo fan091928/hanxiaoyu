@@ -40,8 +40,9 @@ button{cursor:pointer}
 .app{
   position:relative;
   width:100%;max-width:430px;
-  /* 高度由 JS 用真实可视区算出并写入 --app-h，真机最可靠；回退 100dvh */
-  height:var(--app-h,100dvh);
+  /* 响应式高度：dvh 由浏览器原生跟随 iOS 地址栏收放，不依赖 JS，杜绝真机白边 */
+  height:100vh;
+  height:100dvh;
   display:flex;flex-direction:column;
   overflow:hidden;
   background-color:#f7f4ff;
@@ -55,7 +56,8 @@ button{cursor:pointer}
 }
 /* 手机端：固定定位铺满屏幕，彻底消除底部 Home 条处的空白 */
 @media(max-width:499px){
-  .app{position:fixed;top:0;left:0;right:0;bottom:auto;height:var(--app-h,100dvh);max-width:none;border-radius:0}
+  /* 不用 fixed：与 flex 子项 tabbar 保持同一参照系，地址栏收放也不会错位留白 */
+  .app{position:relative;width:100%;max-width:none;border-radius:0;height:100vh;height:100dvh}
 }
 /* 背景漂浮蝴蝶结（SVG，不依赖 emoji 字体） */
 .bg-deco{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
@@ -105,9 +107,9 @@ button{cursor:pointer}
 .ts-label{font-size:10px;color:var(--sub);margin-top:1px}
 
 /* ---------- 页面容器 ---------- */
-.page-wrap{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 16px 20px}
+.page-wrap{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 16px 20px}
 /* 手机端导航栏 fixed，内容区底部留位避免被遮挡 */
-@media(max-width:499px){.page-wrap{padding-bottom:calc(70px + var(--safe-b))}}
+@media(max-width:499px){.page-wrap{padding-bottom:16px}}
 .page{display:none;animation:fade .3s}
 .page.active{display:block}
 @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -399,7 +401,7 @@ button{cursor:pointer}
    淡紫波点背景一直铺到屏幕底，消除图标下方的空白断层。 */
 .tabbar{
   flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-around;
-  height:calc(58px + var(--safe-b));
+  height:calc(58px + env(safe-area-inset-bottom,0px));
   background-color:rgba(250,247,255,.97);
   background-image:radial-gradient(rgba(168,140,245,.20) 1.4px,transparent 1.4px);
   background-size:15px 15px;
@@ -408,7 +410,7 @@ button{cursor:pointer}
 }
 /* 手机端固定到视口底部，宽度受限于 app */
 @media(max-width:499px){
-  .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;width:100%;max-width:430px;margin:0 auto;
+  .tabbar{position:relative;z-index:30;width:100%;max-width:none;margin:0;
     box-shadow:0 -4px 18px rgba(138,107,216,.08);border-radius:0}
 }
 .tab-item{position:relative;z-index:1;flex:1;height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;color:var(--muted);font-weight:600;transition:.15s}

@@ -10,8 +10,31 @@
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const KEY = 'hanxiaoyu_v1';
 
-  /* 视口高度由 CSS 的 100dvh 处理（真机更可靠），不再用 JS 动态算高，
-     避免 iOS 地址栏/Home 条高度计算偏差导致底部出现空隙。 */
+  /* ---------- 真机视口/安全区精确适配（iPhone 14 Pro Max / 微信 web-view）----------
+     用真实可视高度写入 --app-h，让 app 严格贴合屏幕；用探针测量底部安全区
+     写入 --safe-b，导航栏据此下移贴底。彻底消除底部空白。 */
+  function fitScreen() {
+    try {
+      const vv = window.visualViewport;
+      // 可视高度：优先 visualViewport，其次 innerHeight
+      const h = (vv && vv.height) ? vv.height : window.innerHeight;
+      document.documentElement.style.setProperty('--app-h', Math.round(h) + 'px');
+      // 底部安全区探针：用 CSS env() 读取真实值，避免硬编码
+      const probe = document.createElement('div');
+      probe.style.cssText = 'position:fixed;left:-9999px;bottom:0;width:1px;height:0;padding-bottom:env(safe-area-inset-bottom,0px)';
+      document.body.appendChild(probe);
+      const sb = parseFloat(getComputedStyle(probe).paddingBottom) || 0;
+      probe.remove();
+      document.documentElement.style.setProperty('--safe-b', sb + 'px');
+    } catch (e) {}
+  }
+  fitScreen();
+  window.addEventListener('resize', fitScreen);
+  window.addEventListener('orientationchange', () => setTimeout(fitScreen, 150));
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', fitScreen);
+    window.visualViewport.addEventListener('scroll', fitScreen);
+  }
 
   const defaultState = () => ({
     checkins: [], goal: 30, challengeName: '我的韩语挑战',

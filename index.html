@@ -13,9 +13,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#f3eeff">
 <title>韩小语 · 韩语学习工作台</title>
-<link rel="stylesheet" href="css/style.css?v=20261120f">
-<link rel="stylesheet" href="css/ai-chat.css?v=20261120f">
-<link rel="stylesheet" href="css/word-detail.css?v=20261120f">
+<link rel="stylesheet" href="css/style.css?v=20261120g">
+<link rel="stylesheet" href="css/ai-chat.css?v=20261120g">
+<link rel="stylesheet" href="css/word-detail.css?v=20261120g">
 </head>
 <body>
 
@@ -29,17 +29,7 @@
     <svg class="bow-deco bow-3" viewBox="0 0 120 90"><path d="M58 45C30 12 6 20 12 45c5 17 28 18 46 4z" fill="#c9d8f7"/><path d="M62 45C90 12 114 20 108 45c-5 17-28 18-46 4z" fill="#c9d8f7"/><path d="M55 50 38 82l14-4 8-24zM65 50 82 82l-14-4-8-24z" fill="#aac2ee"/><rect x="52" y="38" width="16" height="18" rx="6" fill="#93ade2"/></svg>
   </div>
 
-  <!-- PWA 独立模式自绘状态栏：仅"添加到主屏幕"全屏运行时显示，占住灵动岛/时间那一栏。
-       Safari 与微信 web-view 用系统真实状态栏（不会加 .hxy-standalone 类），故此栏隐藏，绝不重复。 -->
-  <div class="hxy-statusbar" aria-hidden="true">
-    <div class="hxysb-time" id="hxysbTime">9:41</div>
-    <div class="hxysb-island"></div>
-    <div class="hxysb-icons">
-      <svg class="sb-signal" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx=".8"/><rect x="5" y="6" width="3" height="6" rx=".8"/><rect x="10" y="3.5" width="3" height="8.5" rx=".8"/><rect x="15" y="1" width="3" height="11" rx=".8"/></svg>
-      <svg class="sb-wifi" viewBox="0 0 16 12"><path d="M8 10.8l2.1-2.6a3.4 3.4 0 0 0-4.2 0L8 10.8zM8 5.9a5.6 5.6 0 0 1 3.7 1.4l1.5-1.8A8 8 0 0 0 8 3.4a8 8 0 0 0-5.2 2.1l1.5 1.8A5.6 5.6 0 0 1 8 5.9zM8 1.2c2.4 0 4.6.9 6.3 2.4L15.8 1.8A11.4 11.4 0 0 0 8-.8 11.4 11.4 0 0 0 .2 1.8l1.5 1.8A9.4 9.4 0 0 1 8 1.2z"/></svg>
-      <div class="sb-battery"><i></i></div>
-    </div>
-  </div>
+  <!-- 为适配 iPhone 14 Pro Max 灵动岛/状态栏：移除模拟状态栏，改用真实安全区(top safe-area) -->
 
   <!-- 启动名言弹窗 -->
   <div class="splash-overlay" id="splashOverlay">
@@ -460,22 +450,22 @@
 
 </div>
 
-<script src="js/data-core.js?v=20261120f"></script>
-<script src="js/data-words.js?v=20261120f"></script>
-<script src="js/data-scenes.js?v=20261120f"></script>
-<script src="js/data-extra.js?v=20261120f"></script>
-<script src="js/data-media.js?v=20261120f"></script>
-<script src="js/data-material-content.js?v=20261120f"></script>
-<script src="js/data-kugou.js?v=20261120f"></script>
-<script src="js/data-drama.js?v=20261120f"></script>
-<script src="js/data-honorific.js?v=20261120f"></script>
-<script src="js/data-word-detail.js?v=20261120f"></script>
-<script src="js/publisher.js?v=20261120f"></script>
-<script src="js/store.js?v=20261120f"></script>
-<script src="js/app.js?v=20261120f"></script>
-<script src="js/word-examples.js?v=20261120f"></script>
-<script src="js/word-detail.js?v=20261120f"></script>
-<script src="js/ai-chat.js?v=20261120f"></script>
+<script src="js/data-core.js?v=20261120g"></script>
+<script src="js/data-words.js?v=20261120g"></script>
+<script src="js/data-scenes.js?v=20261120g"></script>
+<script src="js/data-extra.js?v=20261120g"></script>
+<script src="js/data-media.js?v=20261120g"></script>
+<script src="js/data-material-content.js?v=20261120g"></script>
+<script src="js/data-kugou.js?v=20261120g"></script>
+<script src="js/data-drama.js?v=20261120g"></script>
+<script src="js/data-honorific.js?v=20261120g"></script>
+<script src="js/data-word-detail.js?v=20261120g"></script>
+<script src="js/publisher.js?v=20261120g"></script>
+<script src="js/store.js?v=20261120g"></script>
+<script src="js/app.js?v=20261120g"></script>
+<script src="js/word-examples.js?v=20261120g"></script>
+<script src="js/word-detail.js?v=20261120g"></script>
+<script src="js/ai-chat.js?v=20261120g"></script>
 <script>
   (function(){
     var aiBtn = document.getElementById('aiChatEntry');

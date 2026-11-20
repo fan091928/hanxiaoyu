@@ -1088,11 +1088,11 @@
         readAll.textContent = '⏹ 停止连读';
         // 高亮当前朗读的句子，让用户清楚听到哪一句、不会以为"跳过"
         const highlight = (ko) => {
-          $$('#dramaDialog .dialog-play').forEach(x => x.classList.remove('playing'));
-          const btn = $$('#dramaDialog [data-say]').find(b => b.dataset.say === ko);
-          if (btn) {
-            btn.classList.add('playing');
-            const bubble = btn.closest('.dialog-bubble');
+          $$('#dramaDialog .dialog-ko').forEach(x => x.classList.remove('playing'));
+          const koEl = $$('#dramaDialog .dialog-ko[data-say]').find(b => b.dataset.say === ko);
+          if (koEl) {
+            koEl.classList.add('playing');
+            const bubble = koEl.closest('.dialog-bubble');
             if (bubble) bubble.classList.add('reading');
           }
         };
@@ -1100,7 +1100,7 @@
           if (!readAll._playing) return;
           if (i >= lines.length) {
             $$('#dramaDialog .dialog-bubble').forEach(x => x.classList.remove('reading'));
-            $$('#dramaDialog .dialog-play').forEach(x => x.classList.remove('playing'));
+            $$('#dramaDialog .dialog-ko').forEach(x => x.classList.remove('playing'));
             stopReadingAll(); toast('✅ 全段连读完成'); return;
           }
           const line = lines[i];
@@ -1143,15 +1143,14 @@
         <div class="dialog-bubble ${i % 2 === 1 ? 'b' : ''}">
           <div class="dialog-avatar">${d.speaker}</div>
           <div class="dialog-content">
-            <div class="dialog-ko">${esc(d.ko)}</div>
+            <div class="dialog-ko" data-say="${esc(d.ko)}">${esc(d.ko)}<span class="sent-spk">🔊</span></div>
             <div class="dialog-roman">${esc(d.roman)}</div>
             <div class="dialog-cn">${esc(d.cn)}</div>
-            <button class="dialog-play" data-say="${esc(d.ko)}">🔊 真人发音</button>
           </div>
         </div>`).join('')}`;
-    $$('#dramaDialog [data-say]').forEach(b => b.onclick = () => {
-      // 点击逐句发音：高亮当前句子 + 播放真声（失败自动降级）
-      $$('#dramaDialog .dialog-play').forEach(x => x.classList.remove('playing'));
+    // 点整句即可发音（小喇叭只是提示，不用单独点它）
+    $$('#dramaDialog .dialog-ko[data-say]').forEach(b => b.onclick = () => {
+      $$('#dramaDialog .dialog-ko').forEach(x => x.classList.remove('playing'));
       b.classList.add('playing');
       speak(b.dataset.say, 1);
       clearTimeout(b._pt);

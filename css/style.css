@@ -37,9 +37,8 @@ button{cursor:pointer}
 .app{
   position:relative;
   width:100%;max-width:430px;
-  /* 用 100% 让容器严格贴合 html/body 的可视高度；body 高度已由动态脚本
-     设为「可视区高度 - 顶部安全区」，避免 iOS 地址栏/Home 条造成的底部空隙 */
-  height:100%;
+  /* 移动端用 dvh 严格贴合可视高度，不用 JS 动态算高（真机上会算小导致底部空隙） */
+  height:100dvh;
   display:flex;flex-direction:column;
   overflow:hidden;
   background-color:#f7f4ff;
@@ -51,6 +50,10 @@ button{cursor:pointer}
   background-size:auto,auto,auto,20px 20px;
   box-shadow:0 20px 60px rgba(90,60,150,.25);
 }
+/* 手机端：固定定位铺满屏幕，彻底消除底部 Home 条处的空白 */
+@media(max-width:499px){
+  .app{position:fixed;inset:0;height:100dvh;max-width:none;border-radius:0}
+}
 /* 背景漂浮蝴蝶结（SVG，不依赖 emoji 字体） */
 .bg-deco{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
 .bow-deco{position:absolute;width:56px;height:42px;opacity:.20}
@@ -61,6 +64,7 @@ button{cursor:pointer}
 @media(min-width:500px){.app{border-radius:42px;height:min(932px,calc(100vh - 40px))}}
 /* 适配 iPhone 14 Pro Max：真机顶部留安全区避开灵动岛/状态栏，移除模拟状态栏 */
 .app{padding-top:var(--safe-t)}
+@media(max-width:499px){.app{padding-top:var(--safe-t)}}
 
 /* ---------- 启动弹窗 ---------- */
 .splash-overlay{position:absolute;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:28px;
@@ -383,10 +387,18 @@ button{cursor:pointer}
 .log-check.done{filter:none}
 
 /* ---------- 底部导航 ----------
-   高度 = 内容区(66px) + 底部安全区，图标与文字在内容区内垂直居中；
-   安全区仅作为 Home 条留白，不再挤压图标，消除导航下方空隙。 */
-.tabbar{flex-shrink:0;display:flex;align-items:stretch;justify-content:space-around;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding-bottom:var(--safe-b)}
-.tab-item{flex:1;height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;color:var(--muted);font-weight:600;transition:.15s}
+   淡紫波点背景；导航栏整体高度 = 内容区 + Home 条安全区，
+   背景（含安全区）铺满到屏幕最底部，图标文字停在安全区上方，消除底部空白断层。 */
+.tabbar{
+  position:relative;flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-around;
+  height:calc(66px + var(--safe-b));
+  background-color:rgba(250,247,255,.97);
+  background-image:radial-gradient(rgba(168,140,245,.20) 1.4px,transparent 1.4px);
+  background-size:15px 15px;
+  backdrop-filter:blur(10px);border-top:1px solid var(--line);
+  isolation:isolate;
+}
+.tab-item{position:relative;z-index:1;flex:1;height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;color:var(--muted);font-weight:600;transition:.15s}
 .tab-item .ti-icon{font-size:27px;line-height:1;filter:grayscale(1);opacity:.6;transition:.15s}
 .tab-item.active{color:var(--purple-deep)}
 .tab-item.active .ti-icon{filter:none;opacity:1;transform:translateY(-2px) scale(1.06)}

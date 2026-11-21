@@ -176,7 +176,7 @@
     try {
       if (audioPlayer) { try { audioPlayer.pause(); } catch (e) {} audioPlayer = null; }
       const a = new Audio();
-      a.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121ab';
+      a.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121ac';
       a.preload = 'auto';
       a.playbackRate = rate || 1;
       audioPlayer = a;
@@ -214,7 +214,7 @@
     if (!url) return false;
     try {
       if (audioPlayer) { try { audioPlayer.pause(); } catch (e) {} audioPlayer = null; }
-      const full = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121ab';
+      const full = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121ac';
       let a = maleAudioCache[full];
       if (!a) {
         a = new Audio();
@@ -1192,17 +1192,20 @@
     if (!curDrama) curDrama = dramaNames[0];
     $('#dramaDramas').innerHTML = dramaNames.map(d =>
       `<button class="chip ${d === curDrama ? 'active' : ''}" data-drama="${esc(d)}">${esc(d)}</button>`).join('');
-    $$('#dramaDramas .chip').forEach(b => b.onclick = () => { curDrama = b.dataset.drama; renderDramas(); });
+    $$('#dramaDramas .chip').forEach(b => b.onclick = () => {
+      stopReadingAll();                       // 切换剧目时先停掉上一部的全段连读
+      $$('#dramaDialog .dialog-bubble').forEach(x => x.classList.remove('reading'));
+      $$('#dramaDialog .dialog-ko').forEach(x => x.classList.remove('playing'));
+      curDrama = b.dataset.drama;
+      renderDramas();
+    });
     const groups = DRAMA_GROUPS.filter(g => g.drama === curDrama);
     const voice = DRAMA_VOICE[curDrama] || {};
     $('#dramaScenes').innerHTML = `<div class="drama-scene-title">🎬 ${esc(curDrama)} · ${groups.length} 段场景</div>` +
       `<div class="voice-bar">
-        <div class="voice-info">🎙️ <b>清晰真人发音</b> <span>标准韩语朗读 · 非机械合成</span></div>
         <div class="voice-btns">
           <button id="voiceReadAll" class="voice-btn">🔊 全段连读</button>
-          <a class="voice-btn origin" href="${esc(voice.clip || '#')}" target="_blank" rel="noopener">▶️ 听原剧原声</a>
         </div>
-        <p class="voice-note">逐句/全段均为清晰真声朗读；如需演员原声表演，点「听原剧原声」跳转国内平台观看</p>
       </div>` +
       groups.map((g, gi) => `<button class="chip ${gi === 0 ? 'active' : ''}" data-scene-idx="${gi}" style="margin:0 6px 6px 0">${esc(g.theme)} <span class="deg-tag deg-${g.level}">${g.level}</span></button>`).join('');
     // 全段连读：真人发音依次播放（跟随当前选中的场景）
@@ -1283,7 +1286,7 @@
       <div class="drama-scene-title">💬 ${esc(g.theme)} · <span class="deg-tag deg-${g.level}">${{初:'初级',中:'中级',高:'高级'}[g.level]}</span></div>
       ${g.dialog.map((d, i) => `
         <div class="dialog-bubble ${i % 2 === 1 ? 'b' : ''}">
-          <div class="dialog-avatar"><img src="${dramaAvatar(g.drama, d.speaker)}?v=20261121ab" alt="${esc(d.speaker)}"></div>
+          <div class="dialog-avatar"><img src="${dramaAvatar(g.drama, d.speaker)}?v=20261121ac" alt="${esc(d.speaker)}"></div>
           <div class="dialog-content">
             <div class="dialog-ko" data-say="${esc(d.ko)}" data-spk="${esc(d.speaker)}">${esc(d.ko)}</div>
             <div class="dialog-roman">${esc(d.roman)}</div>

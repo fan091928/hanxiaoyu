@@ -17,6 +17,7 @@ const WORD_CATEGORIES = [
   { key: 'adj',      label: '形容词',   icon: '✨' },
   { key: 'praise',   label: '夸赞用语', icon: '💕' },
   { key: 'beauty',   label: '美妆化妆', icon: '💄' },
+  { key: 'idol',     label: '追星·偶像', icon: '🎤' },
   { key: 'etc',      label: '其他·副词', icon: '🔤' }
 ];
 const LEVELS = [1, 2, 3, 4, 5, 6];
@@ -2553,6 +2554,76 @@ PC방|网吧|PC-bang|2|place
 시점|时点/时刻|sijeom|4|time
 무한|无限|muhan|4|time
 유한|有限|yuhan|4|time
+아이돌|偶像|aidol|2|idol
+팬클럽|粉丝俱乐部|paenkeulleop|3|idol
+덕후|追星族|deokhu|4|idol
+덕질|追星|deokjil|4|idol
+최애|本命/最爱|choeae|4|idol
+차애|次爱|chae|5|idol
+본명|本名|bonmyeong|4|idol
+소속사|经纪公司|sosoksa|4|idol
+연예인|艺人|yeonyein|3|idol
+스타|明星|seuta|3|idol
+리더|队长|rideo|3|idol
+막내|忙内/老幺|angnae|4|idol
+메인보컬|主唱|meinbokel|4|idol
+래퍼|说唱歌手|raepo|4|idol
+댄서|舞者|daenseo|4|idol
+연습생|练习生|yeonseupsaeng|4|idol
+신인|新人|sinin|4|idol
+음원|音源|eumwon|4|idol
+노래|歌曲|norae|1|idol
+앨범|专辑|aelbeom|3|idol
+미니앨범|迷你专辑|miniaelbeom|4|idol
+정규앨범|正规专辑|jeonggyuaelbeom|4|idol
+싱글|单曲|singgeul|4|idol
+신곡|新歌|singok|4|idol
+뮤비|音乐录影带/MV|myubi|4|idol
+타이틀곡|主打歌|taiteul-gok|4|idol
+수록곡|收录曲|surokgok|5|idol
+OST|原声带|oseuti|4|idol
+가사|歌词|gasa|3|idol
+멜로디|旋律|mellodi|4|idol
+안무|编舞|anmu|5|idol
+커버|翻唱|keobeo|5|idol
+콘서트|演唱会|konseonteu|3|idol
+팬미팅|粉丝见面会|paenmiting|4|idol
+팬사인회|粉丝签名会|paensainhoe|5|idol
+사인|签名|sain|4|idol
+무대|舞台|mudae|4|idol
+리허설|彩排|riheosol|5|idol
+앵콜|安可|aengkol|5|idol
+컴백|回归|keombaek|4|idol
+데뷔|出道|debi|4|idol
+활동|活动|hwaldong|4|idol
+스케줄|日程|seukejul|5|idol
+굿즈|周边商品|gujeu|5|idol
+포토카드|小卡|potokadeu|5|idol
+응원봉|应援棒|eungwonbong|5|idol
+응원가|应援歌|eungwonga|5|idol
+슬로건|标语/应援横幅|seullojeon|5|idol
+포스터|海报|poseuteo|4|idol
+엽서|明信片|yeopseo|4|idol
+스티커|贴纸|seutikeo|4|idol
+티켓|门票|tiket|4|idol
+예매|预售/订票|yemae|5|idol
+좌석|座位|jwaseok|5|idol
+스트리밍|刷音源/流媒体播放|seuteuriming|5|idol
+음원차트|音源榜|eumwonchateu|5|idol
+직캠|直拍|jikaem|5|idol
+화보|画报|hwabo|5|idol
+동덕|同担|dongdeok|5|idol
+입덕|入坑|ipdeok|5|idol
+탈덕|脱粉|taldeok|5|idol
+성덕|成功追星|seongdeok|5|idol
+팬레터|粉丝信|paenteuleo|5|idol
+음반|唱片|eumban|5|idol
+발매|发行|balmae|5|idol
+예능|综艺|yeneung|4|idol
+솔로|个人/Solo|solo|5|idol
+그룹|组合|geurup|4|idol
+유닛|小分队|yunit|5|idol
+리패키지|改版专辑|ripakeji|5|idol
 `;
 
 const TOPIK_WORDS = RAW_WORDS.trim().split('\n')

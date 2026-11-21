@@ -807,5 +807,119 @@ oo씨 좀 바꿔 주세요.|请转接oo先生。|oo-ssi jom bakkwo juseyo|中
 이야기 좀 더 해 주세요.|再多说一点。|iyagi jom deo hae juseyo|中
 잘 듣고 있어요.|我在认真听。|jal deutdgo isseoyo|中
 고마운 말이에요.|谢谢你说这话。|gomaun marieyo|高
+`.trim(),
+
+  '아이돌과 대화 偶像互动': `
+안녕하세요! 팬이에요.|你好！我是粉丝。|annyeonghaseyo! paenieyo|初
+너무 좋아해요!|太喜欢你了！|neomu joahaeyo|初
+사인 부탁드려요.|请给我签个名。|sain butakdeuryeoyo|初
+사진 같이 찍어도 돼요?|可以一起合影吗？|sajin gachi jjigeodo dwaeyo|初
+오빠, 화이팅!|哥哥，加油！|oppa, hwaiting|初
+정말 멋있어요!|真的很帅！|jeongmal meosisseoyo|初
+노래 잘 불렀어요.|歌唱得很好。|norae jal bulleosseoyo|初
+팬레터 썼어요.|我写了粉丝信。|paenteuleo sseosseoyo|初
+처음 뵙겠어요.|初次见面。|cheoeum boepgeseoyo|初
+중국에서 왔어요.|我从中国来。|junggugeseo wasseoyo|初
+이름이 뭐예요?|你叫什么名字？|ireumi mwoyeyo|初
+오늘 정말 예뻐요.|今天真漂亮。|oneul jeongmal yeppeoyo|初
+감사합니다!|谢谢！|gamsahamnida|初
+잘 부탁드려요.|请多多关照。|jal butakdeuryeoyo|初
+오빠의 노래를 매일 들어요.|我每天听哥哥的歌。|oppaui noraereul maeil deureoyo|中
+앨범 다 샀어요.|专辑全买了。|aelbeom da sasesseoyo|中
+컴백 진심으로 축하해요.|衷心祝贺你回归。|keombaek jinsimeuro chukhahaeyo|中
+이번 무대 정말 대박이었어요.|这次舞台真的很棒。|ibeon mudae jeongmal daebagiesseoyo|中
+덕질하면서 행복해요.|追星的同时很幸福。|deokjilhamyeonseo haengbokaeyo|中
+응원봉을 들고 왔어요.|我拿着应援棒来了。|eungwonbongeul deulgo wasseoyo|中
+사인회에서 만나서 반가워요.|在签名会上见到很高兴。|sainhoeeseo mannaseo bangawoyo|中
+콘서트 티켓 예매했어요.|我预购了演唱会门票。|konseonteu tiket yemaehaesseoyo|中
+최애가 드디어 왔네요.|本命终于来了。|choeaega deudieo wanneyo|中
+포토카드 한 장만 주세요.|请给我一张小卡。|potokadeu han jangman juseyo|中
+목소리가 정말 좋아요.|声音真的很好听。|moksoriga jeongmal joayo|中
+안무 연습 많이 했어요.|编舞练习了很多次。|anmu yeonseup mani haesseoyo|中
+팬클럽 가입했어요.|我加入了粉丝俱乐部。|paenkeulleop gaiphaesseoyo|中
+신곡 벌써 다 외웠어요.|新歌已经全背下来了。|singok beolsseo da oeulsseoyo|中
+오빠를 향한 마음을 어떻게 전할까요?|该怎样传达我的心意呢？|oppareul hyanghan maeumeul eotteoke jeonhalkkayo|高
+늘 응원한다는 걸 알아주세요.|请知道我一直都在支持你。|neul eungwonhandaneun geor arajuseyo|高
+성덕이 돼서 정말 영광이에요.|能成功追星真的很荣幸。|seongdeogi dwae seo jeongmal yeonggwangieyo|高
+팬덤의 힘을 보여주고 싶어요.|想展示粉丝群体的力量。|paendeamui himeul boyeojugo sipeoyo|高
+음원차트 1위를 기원해요.|祝愿拿下音源榜第一。|eumwonchateu iwireul giwonhaeyo|高
+오빠의 성장을 곁에서 지켜볼게요.|我会在身边见证你的成长。|oppaui seongjangeul gyeoteseo jikyeobolgeyo|高
+팬으로서 자부심을 느껴요.|作为粉丝感到自豪。|paeneuroseo jabusimeul neukkyeoyo|高
+이번 컴백이 인생 최고예요.|这次回归是人生最佳。|ibeon keombaegi insaeng choegoyeyo|高
+언제까지나 변함없이 좋아할게요.|我会一直不变地喜欢你。|eonjekkajina byeonhameopsi joahalgeyo|高
+무대 위의 오빠가 자랑스러워요.|舞台上的哥哥让我骄傲。|mudae wiu oppaga jaranseureowoyo|高
+`.trim(),
+
+  '동덕과 수다 同担交流': `
+너도 이 그룹 좋아해?|你也喜欢这个组合吗？|neodo i geurup joahae|初
+나 최애 있어요.|我有本命。|na choeae isseoyo|初
+같이 덕질하자.|一起追星吧。|gachi deokjilhaja|初
+이 노래 들어봤어?|听过这首歌吗？|i norae deureoboss-eo|初
+진짜 예쁘지 않아?|是不是真的很漂亮？|jinjja yeppeuji ana|初
+내 최애는 리더야.|我的本命是队长。|nae choeaeneun rideoya|初
+포토카드 교환하자.|我们交换小卡吧。|potokadeu gyohanhaja|初
+콘서트 같이 갈래?|要一起去演唱会吗？|konseonteu gachi gallae|初
+나도 입덕했어.|我也入坑了。|nado ipdeokhaesseo|初
+우리 취향 같네요.|我们喜好一样呢。|uri chwihyang gatneyo|初
+응원봉 색깔 뭐예요?|应援棒是什么颜色？|eungwonbong saekkari mwoyeyo|初
+굿즈 많이 샀어요.|买了很多周边。|gujeu mani sasesseoyo|初
+드디어 동덕을 만났네요.|终于遇到同担了。|deudieo dongdeogeul mannanne yo|中
+취향이 완전 같아요.|喜好完全一样。|chwihyangi wanjeon gatayo|中
+이 앨범 수록곡 다 명곡이에요.|这张专辑收录曲全是名曲。|i aelbeom surokgok da myeonggogieyo|中
+컴백 무대 같이 봤어요?|一起看了回归舞台吗？|keombaek mudae gachi bwasseoyo|中
+직캠 하나 추천해 주세요.|请推荐一个直拍。|jikaem hana chucheonhae juseyo|中
+굿즈 정말 갖고 싶어요.|周边真的很想要。|gujeu jeongmal gatgo sipeoyo|中
+팬미팅 신청했어?|申请粉丝见面会了吗？|paenmiting sincheonghaesseo|中
+차애도 생겼어요.|也有第二喜欢的了。|chaae-do saenggyeosseoyo|中
+가사 외우느라 밤새웠어요.|背歌词背到熬夜。|gasa oeuneura bamsaewosseoyo|中
+덕질하다가 시간 가는 줄 몰랐어요.|追星都忘了时间。|deokjilhada ga sigan ganeun jul mollasseoyo|中
+최애 생일 선물 준비했어요?|准备本命的生日礼物了吗？|choeae saengil seonmul junbihaesseoyo|中
+오늘 스밍 완료했어요.|今天刷音源完成了。|oneul seuming wanlyohaesseoyo|中
+덕질이 삶의 활력소예요.|追星是生活的活力源泉。|deokjiri samui hwallyeksovieyo|高
+팬덤 간의 의견 차이가 있더라고요.|粉丝间存在意见分歧呢。|paendeam ganui uigyeon chaga isseodeoragoyo|高
+입덕 계기를 공유하고 싶어요.|想分享入坑的契机。|ipdeok gyegireul gongyuhago sipeoyo|高
+성덕 후기가 부러워요.|好羡慕成功追星的分享。|seongdeok hugiga beureowoyo|高
+탈덕 고민을 한 적이 있어요.|曾经纠结过要不要脱粉。|taldeok gomineul han jeogi isseoyo|高
+같은 덕후끼리 통하는 게 있죠.|同担之间有相通的东西吧。|gateun deokhukkiri tonghaneun ge ijyo|高
+덕질비가 만만치 않아요.|追星的花费可不少。|deokjilbiga manmanchi anayo|高
+오래도록 함께 덕질해요.|长久地一起追星吧。|oraedorok hamkke deokjilhayo|高
+팬으로서의 마음을 이해해 주세요.|请理解作为粉丝的心。|paeneuroseoui maeumeul ihaehae juseyo|高
+최애가 행복하면 저도 행복해요.|本命幸福我也就幸福。|choeaega haengbokhamyeon jeodo haengbokaeyo|高
+`.trim(),
+
+  '덕질 일상 追星日常': `
+오늘 음원 들었어요.|今天听了音源。|oneul eumwon deureosseoyo|初
+새 뮤비 봤어요.|看了新MV。|sae myubi bwasseoyo|初
+노래 연습하고 있어요.|正在练习唱歌。|norae yeonseuphago isseoyo|初
+안무 따라 했어요.|跟着跳了编舞。|anmu ttara haesseoyo|初
+가사 공부해요.|学习歌词。|gasa gongbuhae yo|初
+포스터 붙였어요.|贴了海报。|poseuteo buttyeosseoyo|初
+스티커 모아요.|收集贴纸。|seutikeo moayo|初
+사진 많이 찍었어요.|拍了很多照片。|sajin mani jjigeosseoyo|初
+응원가 불렀어요.|唱了应援歌。|eungwonga bulleosseoyo|初
+화보 봤어요.|看了画报。|hwabo bwasseoyo|初
+오늘도 스밍 했어요.|今天也刷音源了。|oneuldo seuming haesseoyo|初
+매일 스트리밍하고 있어요.|每天都在刷音源。|maeil seuteuriminghago isseoyo|中
+신곡 발매 소식 들었어요?|听说新歌发行的消息了吗？|singok balmae sosik deureosseoyo|中
+미니앨범 예약했어요.|预订了迷你专辑。|miniaelbeom yeyakhaesseoyo|中
+리허설 영상 봤어요.|看了彩排视频。|riheosol yeongsang bwasseoyo|中
+앵콜 무대 놓쳤어요.|错过了安可舞台。|aengkol mudae nochyeosseoyo|中
+소속사 공식 입장 나왔어요.|经纪公司发布了官方立场。|sosoksa gongsik ipjang nawasseoyo|中
+음반이 도착했어요.|唱片到了。|eumbani dochakhaesseoyo|中
+솔로 활동 응원해요.|支持个人活动。|solo hwaldong eungwonhaeyo|中
+유닛 무대 기대돼요.|期待小分队舞台。|yunit mudae gidaedwae yo|中
+팬페이지에서 소식 확인했어요.|在粉丝页确认了消息。|paenpeijieseo sosik hwaginhaesseoyo|中
+오늘 티켓 예매 성공했어요!|今天抢票成功了！|oneul tiket yemae seonggonghaesseoyo|中
+포토카드 정리했어요.|整理了小卡。|potokadeu jeongnihaesseoyo|中
+음원차트 순위가 올라갔어요.|音源榜排名上升了。|eumwonchateu sunwiga ollagasseoyo|高
+컴백 준비가 한창이에요.|回归准备正如火如荼。|keombaek junbiga hanchangieyo|高
+데뷔 무대가 아직도 생생해요.|出道舞台至今仍历历在目。|debi mudae ga ajikdo saengsaenghaeyo|高
+팬들의 힘으로 1위를 했어요.|靠粉丝的力量拿了第一。|pandeurui himeuro iwireul haesseoyo|高
+리패키지 앨범도 기대돼요.|也期待改版专辑。|ripakeji aelbeomdo gidaedwae yo|高
+자료 정리하다가 시간 다 보냈어요.|整理资料花光了时间。|jaryo jeongnihadaga sigan da bonaesseoyo|高
+덕질도 일상처럼 자리 잡았어요.|追星也像日常一样扎根了。|deokjildo ilsangcheoreom jari jabasseoyo|高
+예능 출연 소식에 기뻐요.|因综艺出演的消息而高兴。|yeneung chulyeon sosie gippeoyo|高
+성장하는 모습을 지켜보는 게 즐거워요.|看着成长的样子很快乐。|seongjanghaneun moseubeul jikyeoboneun ge jeulgeowoyo|高
+변함없는 마음으로 응원할게요.|会以不变的心支持你。|byeonhameomneun maeumeuro eungwonhalgeyo|高
 `.trim()
 };

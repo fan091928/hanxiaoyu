@@ -176,7 +176,7 @@
     try {
       if (audioPlayer) { try { audioPlayer.pause(); } catch (e) {} audioPlayer = null; }
       const a = new Audio();
-      a.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121ae';
+      a.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121af';
       a.preload = 'auto';
       a.playbackRate = rate || 1;
       audioPlayer = a;
@@ -214,7 +214,7 @@
     if (!url) return false;
     try {
       if (audioPlayer) { try { audioPlayer.pause(); } catch (e) {} audioPlayer = null; }
-      const full = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121ae';
+      const full = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121af';
       let a = maleAudioCache[full];
       if (!a) {
         a = new Audio();
@@ -1311,7 +1311,7 @@
       <div class="drama-scene-title">💬 ${esc(g.theme)} · <span class="deg-tag deg-${g.level}">${{初:'初级',中:'中级',高:'高级'}[g.level]}</span></div>
       ${g.dialog.map((d, i) => `
         <div class="dialog-bubble ${i % 2 === 1 ? 'b' : ''}">
-          <div class="dialog-avatar"><img src="${dramaAvatar(g.drama, d.speaker)}?v=20261121ae" alt="${esc(d.speaker)}"></div>
+          <div class="dialog-avatar"><img src="${dramaAvatar(g.drama, d.speaker)}?v=20261121af" alt="${esc(d.speaker)}"></div>
           <div class="dialog-content">
             <div class="dialog-ko" data-say="${esc(d.ko)}" data-spk="${esc(d.speaker)}">${esc(d.ko)}</div>
             <div class="dialog-roman">${esc(d.roman)}</div>

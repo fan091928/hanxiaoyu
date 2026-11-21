@@ -176,7 +176,7 @@
     try {
       if (audioPlayer) { try { audioPlayer.pause(); } catch (e) {} audioPlayer = null; }
       const a = new Audio();
-      a.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121z';
+      a.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121aa';
       a.preload = 'auto';
       a.playbackRate = rate || 1;
       audioPlayer = a;
@@ -206,15 +206,23 @@
     } catch (e) {}
     return null;
   }
+  // 男声音频缓存池：同一句加载过即复用，避免每次点击重新下载导致卡顿
+  const maleAudioCache = {};
   // 播放本地男声；返回是否成功启动。onEnd 用于连读串联
   function playMaleVoice(text, rate, onEnd) {
     const url = localMaleVoiceUrl(text);
     if (!url) return false;
     try {
       if (audioPlayer) { try { audioPlayer.pause(); } catch (e) {} audioPlayer = null; }
-      const a = new Audio();
-      a.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121z';
-      a.preload = 'auto';
+      const full = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121aa';
+      let a = maleAudioCache[full];
+      if (!a) {
+        a = new Audio();
+        a.src = full;
+        a.preload = 'auto';
+        maleAudioCache[full] = a;
+      }
+      try { a.currentTime = 0; } catch (e) {}
       a.playbackRate = rate || 1;
       audioPlayer = a;
       realVoiceOK = true;
@@ -1275,7 +1283,7 @@
       <div class="drama-scene-title">💬 ${esc(g.theme)} · <span class="deg-tag deg-${g.level}">${{初:'初级',中:'中级',高:'高级'}[g.level]}</span></div>
       ${g.dialog.map((d, i) => `
         <div class="dialog-bubble ${i % 2 === 1 ? 'b' : ''}">
-          <div class="dialog-avatar"><img src="${dramaAvatar(g.drama, d.speaker)}?v=20261121z" alt="${esc(d.speaker)}"></div>
+          <div class="dialog-avatar"><img src="${dramaAvatar(g.drama, d.speaker)}?v=20261121aa" alt="${esc(d.speaker)}"></div>
           <div class="dialog-content">
             <div class="dialog-ko" data-say="${esc(d.ko)}" data-spk="${esc(d.speaker)}">${esc(d.ko)}</div>
             <div class="dialog-roman">${esc(d.roman)}</div>

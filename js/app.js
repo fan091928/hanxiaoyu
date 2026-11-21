@@ -176,7 +176,7 @@
     try {
       if (audioPlayer) { try { audioPlayer.pause(); } catch (e) {} audioPlayer = null; }
       const a = new Audio();
-      a.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121v';
+      a.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121w';
       a.preload = 'auto';
       a.playbackRate = rate || 1;
       audioPlayer = a;
@@ -196,6 +196,61 @@
       return true;
     } catch (e) { return false; }
   }
+  // ===== 韩剧台词按角色分声线：A=男性(沉稳磁力男声 InJoonNeural)，B=女性(sunhi) =====
+  // 男性台词本地音频 URL（ko-KR-InJoonNeural，与 sunhi 同引擎的自然男声）
+  function localMaleVoiceUrl(text) {
+    try {
+      const map = window.MALE_VOICE_MAP;
+      const f = map && map[text];
+      if (f) return 'audio/male/' + f;
+    } catch (e) {}
+    return null;
+  }
+  // 播放本地男声；返回是否成功启动。onEnd 用于连读串联
+  function playMaleVoice(text, rate, onEnd) {
+    const url = localMaleVoiceUrl(text);
+    if (!url) return false;
+    try {
+      if (audioPlayer) { try { audioPlayer.pause(); } catch (e) {} audioPlayer = null; }
+      const a = new Audio();
+      a.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121w';
+      a.preload = 'auto';
+      a.playbackRate = rate || 1;
+      audioPlayer = a;
+      realVoiceOK = true;
+      let done = false;
+      const fin = () => { if (done) return; done = true; if (onEnd) onEnd(); };
+      a.onended = fin;
+      a.onerror = () => {
+        if (!done) {
+          done = true;
+          if (onEnd) onEnd();
+          else playRealAudio(text, rate);
+        }
+      };
+      const p = a.play();
+      if (p && p.catch) p.catch(() => {});
+      return true;
+    } catch (e) { return false; }
+  }
+  // 韩剧台词专用发音：按角色选声线
+  //  - speaker 'A'(男)：本地男声优先，缺失则降级在线音源
+  //  - 其他(女)：沿用 sunhi 本地女声 / 原逻辑
+  function speakDrama(text, speaker, rate = 1, onEnd = null) {
+    if (!text) { if (onEnd) onEnd(); return; }
+    if (speaker === 'A') {
+      // 男声：逐句用 playMaleVoice；连读(onEnd)也用它保证串联
+      if (playMaleVoice(text, rate, onEnd)) return;
+      // 男声本地缺失时降级：有连读回调用 speakWithEnd，否则在线音源
+      if (onEnd) speakWithEnd(text, rate, onEnd);
+      else playRealAudio(text, rate);
+      return;
+    }
+    // 女性角色：保持原 sunhi 发音链路
+    if (onEnd) { if (playLocalVoice(text, rate, onEnd)) return; speakWithEnd(text, rate, onEnd); }
+    else speak(text, rate);
+  }
+
   // 统一发音入口（兼容旧的 opts 参数，但忽略角色性别——全部使用清晰真声）
   function speak(text, rate = 1, opts = null) {
     if (!text) return;
@@ -204,6 +259,7 @@
     playRealAudio(text, r);                       // 否则在线音源
   }
   window.__speak = speak;
+  window.speakDrama = speakDrama;
 
   // Kpop 专用发音：强制走原来的在线音源（百度/有道），不使用本地 Edge 女声，
   // 保留用户精心挑选的 Kpop 原声听感（歌曲原声片段 kc.clip 本就独立、从未改动）。
@@ -1175,7 +1231,7 @@
           i++;
           highlight(line.ko);
           preloadLines(lines, i);          // 提前缓冲接下来的两句
-          speakWithEnd(line.ko, 1, () => {
+          speakDrama(line.ko, line.speaker, 1, () => {
             // 上一句真正结束后立即接下一句；仅用很短间隔避免音频引擎抢播
             setTimeout(() => { if (readAll._playing) playNext(); }, 90);
           });
@@ -1219,9 +1275,9 @@
       <div class="drama-scene-title">💬 ${esc(g.theme)} · <span class="deg-tag deg-${g.level}">${{初:'初级',中:'中级',高:'高级'}[g.level]}</span></div>
       ${g.dialog.map((d, i) => `
         <div class="dialog-bubble ${i % 2 === 1 ? 'b' : ''}">
-          <div class="dialog-avatar"><img src="${dramaAvatar(g.drama, d.speaker)}?v=20261121v" alt="${esc(d.speaker)}"></div>
+          <div class="dialog-avatar"><img src="${dramaAvatar(g.drama, d.speaker)}?v=20261121w" alt="${esc(d.speaker)}"></div>
           <div class="dialog-content">
-            <div class="dialog-ko" data-say="${esc(d.ko)}">${esc(d.ko)}</div>
+            <div class="dialog-ko" data-say="${esc(d.ko)}" data-spk="${esc(d.speaker)}">${esc(d.ko)}</div>
             <div class="dialog-roman">${esc(d.roman)}</div>
             <div class="dialog-cn">${esc(d.cn)}</div>
             <span class="sent-spk" title="点击发音">🔊</span>
@@ -1234,7 +1290,7 @@
         b.classList.add('playing');
         const content = b.closest('.dialog-content');
         if (content) { const sp = content.querySelector('.sent-spk'); if (sp) sp.classList.add('playing'); }
-        speak(b.dataset.say, 1);
+        speakDrama(b.dataset.say, b.dataset.spk, 1);
         clearTimeout(b._pt);
         b._pt = setTimeout(() => {
           b.classList.remove('playing');

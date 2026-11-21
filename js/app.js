@@ -176,7 +176,7 @@
     try {
       if (audioPlayer) { try { audioPlayer.pause(); } catch (e) {} audioPlayer = null; }
       const a = new Audio();
-      a.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121ac';
+      a.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121ad';
       a.preload = 'auto';
       a.playbackRate = rate || 1;
       audioPlayer = a;
@@ -214,7 +214,7 @@
     if (!url) return false;
     try {
       if (audioPlayer) { try { audioPlayer.pause(); } catch (e) {} audioPlayer = null; }
-      const full = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121ac';
+      const full = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121ad';
       let a = maleAudioCache[full];
       if (!a) {
         a = new Audio();
@@ -537,29 +537,49 @@
     tab.classList.add('active');
     $('#page-' + tab.dataset.page).classList.add('active');
     $('.page-wrap').scrollTop = 0;
-    // 返回置顶键仅在词典页可用
-    var btt = document.getElementById('dictBackTop');
-    if (btt) btt.classList.remove('show');
+    // 切换主页面时隐藏所有返回置顶键
+    ['dictBackTop', 'sentenceBackTop'].forEach(function(id){
+      var b = document.getElementById(id);
+      if (b) b.classList.remove('show');
+    });
     if (tab.dataset.page === 'checkin') { refreshStats(); renderCalendar(); }
     if (tab.dataset.page === 'me') refreshStats();
   }));
 
-  /* 词典页：滚动超过两页显示返回置顶键 */
-  (function initDictBackTop(){
+  /* 返回置顶键：词典页 + 每日短句页，滚动超过两页显示 */
+  (function initBackTop(){
     var wrap = document.querySelector('.page-wrap');
-    var btt = document.getElementById('dictBackTop');
+    if (!wrap) return;
     var dictPage = document.getElementById('page-dict');
-    if (!wrap || !btt || !dictPage) return;
-    wrap.addEventListener('scroll', function(){
-      if (!dictPage.classList.contains('active')) { btt.classList.remove('show'); return; }
-      var twoPages = (wrap.clientHeight || window.innerHeight) * 2;
-      if (wrap.scrollTop > twoPages) btt.classList.add('show');
-      else btt.classList.remove('show');
-    }, { passive: true });
-    btt.addEventListener('click', function(){
-      if (wrap.scrollTo) wrap.scrollTo({ top: 0, behavior: 'smooth' });
-      else wrap.scrollTop = 0;
+    var practicePage = document.getElementById('page-practice');
+    var subSentence = document.getElementById('sub-sentence');
+    var bttDict = document.getElementById('dictBackTop');
+    var bttSentence = document.getElementById('sentenceBackTop');
+
+    // 点击置顶
+    [bttDict, bttSentence].forEach(function(btt){
+      if (!btt) return;
+      btt.addEventListener('click', function(){
+        if (wrap.scrollTo) wrap.scrollTo({ top: 0, behavior: 'smooth' });
+        else wrap.scrollTop = 0;
+      });
     });
+
+    wrap.addEventListener('scroll', function(){
+      var twoPages = (wrap.clientHeight || window.innerHeight) * 2;
+      var over = wrap.scrollTop > twoPages;
+      // 词典页
+      if (bttDict) {
+        if (dictPage && dictPage.classList.contains('active') && over) bttDict.classList.add('show');
+        else bttDict.classList.remove('show');
+      }
+      // 每日短句页（练习页 + 短句子标签）
+      if (bttSentence) {
+        if (practicePage && practicePage.classList.contains('active') &&
+            subSentence && subSentence.classList.contains('active') && over) bttSentence.classList.add('show');
+        else bttSentence.classList.remove('show');
+      }
+    }, { passive: true });
   })();
 
   /* ============================================================
@@ -1100,6 +1120,11 @@
   function switchPracticeTab(tab) {
     $$('#practiceTabs .subtab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     $$('.subpage').forEach(p => p.classList.toggle('active', p.id === 'sub-' + tab));
+    // 离开每日短句子标签时隐藏其置顶键
+    if (tab !== 'sentence') {
+      var btt = document.getElementById('sentenceBackTop');
+      if (btt) btt.classList.remove('show');
+    }
   }
   $$('#practiceTabs .subtab').forEach(b => b.onclick = () => switchPracticeTab(b.dataset.tab));
 
@@ -1286,7 +1311,7 @@
       <div class="drama-scene-title">💬 ${esc(g.theme)} · <span class="deg-tag deg-${g.level}">${{初:'初级',中:'中级',高:'高级'}[g.level]}</span></div>
       ${g.dialog.map((d, i) => `
         <div class="dialog-bubble ${i % 2 === 1 ? 'b' : ''}">
-          <div class="dialog-avatar"><img src="${dramaAvatar(g.drama, d.speaker)}?v=20261121ac" alt="${esc(d.speaker)}"></div>
+          <div class="dialog-avatar"><img src="${dramaAvatar(g.drama, d.speaker)}?v=20261121ad" alt="${esc(d.speaker)}"></div>
           <div class="dialog-content">
             <div class="dialog-ko" data-say="${esc(d.ko)}" data-spk="${esc(d.speaker)}">${esc(d.ko)}</div>
             <div class="dialog-roman">${esc(d.roman)}</div>

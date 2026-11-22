@@ -853,3 +853,35 @@ select.modal-input{appearance:none;background:#f7f3ff url("data:image/svg+xml,%3
 .back-to-top .btt-arrow{font-size:22px;line-height:1;font-weight:700;margin-top:-2px}
 .back-to-top .btt-label{font-size:10px;margin-top:1px;letter-spacing:1px}
 @keyframes bttIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ============================================================
+   安卓手机适配增强（国产内核 / 微信 X5 / 老版 Chrome）
+   仅对 html.is-android 生效，不影响 iOS 现有安全区逻辑。
+   1) 字体栈补充安卓中文系统字体，避免中文渲染发虚/字体缺失
+   2) app 高度用 JS 实测 --app-h（见 index.html 内联 + app.js fitScreen）
+   3) 底部导航、返回置顶键改用 --app-h 贴合，杜绝底部遮挡/留白
+   ============================================================ */
+html.is-android body,
+html.is-android button,
+html.is-android input,
+html.is-android textarea{
+  font-family:"PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Noto Sans SC","Microsoft YaHei","Source Han Sans SC",Roboto,sans-serif;
+}
+/* 安卓：应用容器高度跟随实测可见高度；桌面宽屏仍走原有居中卡片样式 */
+html.is-android .app{height:var(--app-h,100vh)}
+@media(max-width:499px){
+  html.is-android .app{height:var(--app-h,100vh);max-width:none;border-radius:0}
+  /* tabbar 在安卓用 fixed + --app-h 兜底定位，兼容不支持 dvh 的内核 */
+  html.is-android .tabbar{bottom:0}
+}
+/* 词典返回置顶键：安卓按实测高度贴合底部导航上沿 */
+html.is-android .back-to-top{bottom:calc(76px + var(--safe-b,0px))}
+/* 长按压禁止弹出系统选择菜单/放大镜，减少误触（不影响输入与点读） */
+html.is-android .tab-item,
+html.is-android .module,
+html.is-android .btn-primary,
+html.is-android .splash-btn{
+  -webkit-touch-callout:none;
+  -webkit-user-select:none;
+  user-select:none;
+}

@@ -22,11 +22,23 @@
       const sb = parseFloat(getComputedStyle(probe).paddingBottom) || 0;
       probe.remove();
       document.documentElement.style.setProperty('--safe-b', sb + 'px');
+      /* 安卓适配：国产内核/微信 X5 对 100dvh 支持不一，且 innerHeight 才是当前可见视口高度。
+         仅在 is-android 下写入 --app-h（CSS 里 html.is-android .app 用它），不影响 iOS。
+         visualViewport.height 在软键盘弹起时更准，优先用它。 */
+      if (document.documentElement.classList.contains('is-android')) {
+        const vv = window.visualViewport;
+        const vh = (vv && vv.height) || window.innerHeight || 0;
+        if (vh > 0) document.documentElement.style.setProperty('--app-h', vh + 'px');
+      }
     } catch (e) {}
   }
   fitScreen();
   window.addEventListener('resize', fitScreen);
   window.addEventListener('orientationchange', () => setTimeout(fitScreen, 150));
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', fitScreen);
+    window.visualViewport.addEventListener('scroll', fitScreen);
+  }
 
   const defaultState = () => ({
     checkins: [], goal: 30, challengeName: '我的韩语挑战',
@@ -176,7 +188,7 @@
     try {
       if (audioPlayer) { try { audioPlayer.pause(); } catch (e) {} audioPlayer = null; }
       const a = new Audio();
-      a.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121aj';
+      a.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121ak';
       a.preload = 'auto';
       a.playbackRate = rate || 1;
       audioPlayer = a;
@@ -214,7 +226,7 @@
     if (!url) return false;
     try {
       if (audioPlayer) { try { audioPlayer.pause(); } catch (e) {} audioPlayer = null; }
-      const full = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121aj';
+      const full = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121ak';
       let a = maleAudioCache[full];
       if (!a) {
         a = new Audio();
@@ -1311,7 +1323,7 @@
       <div class="drama-scene-title">💬 ${esc(g.theme)} · <span class="deg-tag deg-${g.level}">${{初:'初级',中:'中级',高:'高级'}[g.level]}</span></div>
       ${g.dialog.map((d, i) => `
         <div class="dialog-bubble ${i % 2 === 1 ? 'b' : ''}">
-          <div class="dialog-avatar"><img src="${dramaAvatar(g.drama, d.speaker)}?v=20261121aj" alt="${esc(d.speaker)}"></div>
+          <div class="dialog-avatar"><img src="${dramaAvatar(g.drama, d.speaker)}?v=20261121ak" alt="${esc(d.speaker)}"></div>
           <div class="dialog-content">
             <div class="dialog-ko" data-say="${esc(d.ko)}" data-spk="${esc(d.speaker)}">${esc(d.ko)}</div>
             <div class="dialog-roman">${esc(d.roman)}</div>

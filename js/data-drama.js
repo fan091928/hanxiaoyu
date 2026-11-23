@@ -29,6 +29,29 @@ B|하하, 오늘도 참 다정하시네요.|哈哈，你今天也真温柔啊。
 A|다정한 게 아니라 사실이에요. 약속해 주세요.|不是温柔，是实话。答应我。|dajeonghan ge animyeo sasir-ieyo. yaksokhae juseyo.
 B|알았어요, 약속할게요. 걱정 좀 줄이세요.|好，我答应你，你少操点心吧。|arasseoyo, yaksokhalgeyo. geokjeong jom juriseyo.
 
+###나의 죄인 我的有罪之人|树林告白·表白与拉扯|高
+A|그런데 이상하게 널 만나고부터는 내 마음 숨기는 게 잘 안 되더라.|可是很奇怪 自从遇见你 我就藏不住自己的心意|geureonde isanghage neol mannago bureoneun nae maeum sumgineun ge jal an doedeora
+A|숨기려 할수록 더 뚜렷해졌어.|越是隐藏 却越来越清晰|sumgiryeo halsurok deo tturyeot haejyeosseo
+A|그래서였을까?|所以才会那样吧？|geuraeseoyeosseulkka
+A|내가 널 어떻게 생각하는지 넌 다 알고 있었더라고.|我对你的想法 你早就知道|naega neol eotteokke saenggakaneunji neon da algo isseotdeorago
+A|다 알면서 숨기고 있었더라고. 치사하게.|你明明都知道 却装作不知道 真卑鄙|da almyeonseo sumgigo isseotdeorago. chisahage.
+B|전 그래야만 하니까요.|因为我不得不这么做|jeon geuraeyaman hanikkayo
+A|만약에. 만약에 말이야.|假设… 只是假设|manyake. manyake mariya.
+A|내가 이시아랑 파혼하면 너 나 좋아할래?|如果我和李施雅解除婚约 你会喜欢我吗？|naega isiarang pahonhamyeon neo na joahallae
+A|내가 태강이 누구 이런 타이틀 다 떼고 그냥 평범해지면 너 나 좋아해줄래?|如果我不再是泰刚的大人物 卸下所有头衔变成普通人 你会喜欢我吗？|naega taegangi nugu ireon taiteul da tteogo geunyang pyeongbeomhaejimyeon neo na joahaejullae
+B|상무님 저 오래 보고 싶다고 하지 않으셨습니까?|你不是常说想多看看我吗？|sangmunim jeo ore bogo sipdago haji aneusyeosseumnikka
+B|전 상무님 오래 보고 싶습니다.|我也想常常看着常务|jeon sangmunim ore bogo sipseumnida
+A|그러니까 만약에. 만약에 말이야.|所以说假如… 我是说假如|geuranikka manyake. manyake mariya.
+A|우리 둘 중 하나는 남자고.|我们两个其中一个是男生|uri dul jung hananeun namjago
+A|둘 중 하나는 여자면.|一个是女生|dul jung hananeun yeojamyeon
+A|너는 날 좋아해줬을까?|你会喜欢上我吗？|neoneun nal joahaejwosseulkka
+B|그때 분명 쓸데없는 가정 안 좋아한다고 하셨습니다.|你之前明明说过不喜欢做无谓的假设|geuttae bunmyeong sseuldeomneun gajeong an joahandago hasyeosseumnida
+B|설사 그런다 하더라도 그럴 일 없을 거고요.|就算是这样 也不可能发生那种事|seolsa geureonda hadeorado geureol il eopseul geogoyo
+B|전 상무님이 지키겠다고 했지.|我只说过要守护常务|jeon sangmunimi jikigetdago haetji
+B|다른 감정으로 좋아하겠다고 한 적은 없으니까.|没说过会以别的感情喜欢你|dareun gamjeongeuro joahagetdago han jeogeun eopseunikka
+A|그런데 난 왜.|可是为什么|geureonde nan wae
+A|너도 나한테 마음이 있는 것 같지?|我总觉得你也对我有意思呢|neodo nahante maeumi inneun geot gatji
+
 ###태양의 후예 太阳的后裔|初识自我介绍|初
 A|안녕하세요. 저는 방송국 기자예요.|你好，我是电视台记者。|annyeonghaseyo. jeoneun bangsongguk gija-yeyo.
 B|안녕하세요. 만나서 반갑습니다.|你好，很高兴见到你。|annyeonghaseyo. mannaseo bangapseumnida.
@@ -268,6 +291,7 @@ const DRAMA_GROUPS = DRAMA_RAW.split(/^###/m).filter(b => b.trim()).map(block =>
         并提供国内平台原剧片段链接，点击可听真实原声。
    ============================================================ */
 const DRAMA_VOICE = {
+  '나의 죄인 我的有罪之人':                 { clip:'https://search.bilibili.com/all?keyword=%EB%82%98%EC%9D%98%20%EC%A3%BC%EC%9D%B8%20%EB%AA%85%EC%9E%A5' },
   '도깨비 鬼怪':                    { clip:'https://search.bilibili.com/all?keyword=%EA%B6%8C%EA%B0%80%EB%B9%84%20%EB%AA%85%EC%9E%A5' },
   '태양의 후예 太阳的后裔':         { clip:'https://search.bilibili.com/all?keyword=%ED%83%9C%EC%96%91%EC%9D%98%20%ED%9B%84%EC%98%88%20%EB%AA%85%EC%9E%A5' },
   '별에서 온 그대 来自星星的你':    { clip:'https://search.bilibili.com/all?keyword=%EB%B3%84%EC%97%90%EC%84%9C%20%EC%98%A8%20%EA%B7%B8%EB%8C%80%20%EB%AA%85%EC%9E%A5' },

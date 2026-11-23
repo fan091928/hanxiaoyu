@@ -1,5 +1,6 @@
 /* 每部韩剧男女主剧照头像映射（公开剧照本地化，仅学习使用） */
 window.DRAMA_AVATARS = {
+  "나의 죄인 我的有罪之人": {m:"img/avatars/drama_21_m.jpg", f:"img/avatars/drama_21_f.jpg"},
   "도깨비 鬼怪": {m:"img/avatars/drama_01_m.jpg", f:"img/avatars/drama_01_f.jpg"},
   "태양의 후예 太阳的后裔": {m:"img/avatars/drama_02_m.jpg", f:"img/avatars/drama_02_f.jpg"},
   "별에서 온 그대 来自星星的你": {m:"img/avatars/drama_03_m.jpg", f:"img/avatars/drama_03_f.jpg"},

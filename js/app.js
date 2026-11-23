@@ -188,7 +188,7 @@
     try {
       if (audioPlayer) { try { audioPlayer.pause(); } catch (e) {} audioPlayer = null; }
       const a = new Audio();
-      a.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121ak';
+      a.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121am';
       a.preload = 'auto';
       a.playbackRate = rate || 1;
       audioPlayer = a;
@@ -226,7 +226,7 @@
     if (!url) return false;
     try {
       if (audioPlayer) { try { audioPlayer.pause(); } catch (e) {} audioPlayer = null; }
-      const full = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121ak';
+      const full = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261121am';
       let a = maleAudioCache[full];
       if (!a) {
         a = new Audio();
@@ -1250,6 +1250,12 @@
     if (readAll) {
       readAll._playing = false;
       readAll.onclick = () => {
+        if (curDrama === SIN_DRAMA && window.SIN_DIALOG) {
+          if (sinSeqOn) { sinStop(); return; }
+          sinReadAll();
+          toast('🔊 开始整段原声连读，再点一次可停止');
+          return;
+        }
         if (readAll._playing) { stopReadingAll(); return; }
         const sel = $('#dramaScenes [data-scene-idx].active');
         const sceneIdx = sel ? +sel.dataset.sceneIdx : 0;
@@ -1290,6 +1296,7 @@
       };
     }
     function stopReadingAll() {
+      sinStop();
       const b = $('#voiceReadAll');
       if (!b) return;
       b._playing = false;
@@ -1317,13 +1324,154 @@
     } catch (e) {}
     return 'img/avatars/' + (speaker === 'B' ? 'drama_female' : 'drama_male') + '.jpg';
   }
+
+  /* ===== 《我的有罪之人》整段连续原声对话（按说话人分大段） ===== */
+  const SIN_DRAMA = '나의 죄인 我的有罪之人';
+  let sinAudios = null, sinMode = 'idle', sinStopE = -1, sinSeqOn = false, sinSeqIdx = 0, sinActiveSeg = null, sinCurGi = -1;
+
+  function sinEnsureAudios() {
+    if (sinAudios || !window.SIN_DIALOG) return sinAudios;
+    sinAudios = {};
+    window.SIN_DIALOG.segs.forEach(sg => {
+      const a = new Audio(window.SIN_DIALOG.audio[sg.id]);
+      a.preload = 'auto';
+      a.addEventListener('timeupdate', () => {
+        if (sinActiveSeg !== sg.id) return;
+        const t = a.currentTime;
+        sinHiAt(sg.id, t);
+        if (sinMode === 'line' && sinStopE > 0 && t >= sinStopE - 0.03) { a.pause(); sinMode = 'idle'; }
+      });
+      sinAudios[sg.id] = a;
+    });
+    return sinAudios;
+  }
+  function sinClearHi() {
+    $$('#dramaDialog .dline.playing').forEach(x => x.classList.remove('playing'));
+    $$('#dramaDialog .dialog-ko.playing').forEach(x => x.classList.remove('playing'));
+    $$('#dramaDialog .sent-spk.playing').forEach(x => x.classList.remove('playing'));
+    $$('#dramaDialog .dialog-bubble.reading').forEach(x => x.classList.remove('reading'));
+    sinCurGi = -1;
+  }
+  function sinStop() {
+    if (sinAudios) Object.keys(sinAudios).forEach(k => {
+      const a = sinAudios[k];
+      try { a.pause(); a.currentTime = 0; } catch (e) {}
+      a.onended = null;
+    });
+    sinMode = 'idle'; sinSeqOn = false; sinSeqIdx = 0; sinActiveSeg = null; sinStopE = -1;
+    sinClearHi();
+    const rb = $('#voiceReadAll');
+    if (rb) { rb.classList.remove('playing'); rb.textContent = '🔊 全段连读'; }
+    $$('#dramaDialog .seg-play').forEach(b => { b.classList.remove('playing'); b.textContent = '▶ 播放本段原声'; });
+  }
+  function sinHiAt(seg, t) {
+    const D = window.SIN_DIALOG;
+    let hit = -1;
+    for (let i = 0; i < D.times.length; i++) {
+      const l = D.times[i];
+      if (l.seg === seg && t >= l.s - 0.02 && t < l.e) hit = i;
+    }
+    if (hit === sinCurGi) return;
+    sinClearHi();
+    if (hit < 0) return;
+    sinCurGi = hit;
+    const els = $$('#dramaDialog .dline');
+    const el = els[hit]; if (!el) return;
+    el.classList.add('playing');
+    const ko = el.querySelector('.dialog-ko'); if (ko) ko.classList.add('playing');
+    const sp = el.querySelector('.sent-spk'); if (sp) sp.classList.add('playing');
+    const bub = el.closest('.dialog-bubble'); if (bub) bub.classList.add('reading');
+    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+  function sinPlayLine(gi) {
+    sinStop();
+    const D = window.SIN_DIALOG;
+    const l = D.times[gi]; if (!l) return;
+    sinEnsureAudios();
+    sinMode = 'line'; sinStopE = l.e; sinActiveSeg = l.seg;
+    const a = sinAudios[l.seg];
+    try { a.currentTime = l.s; } catch (e) {}
+    sinHiAt(l.seg, l.s + 0.02);
+    const p = a.play(); if (p && p.catch) p.catch(() => {});
+  }
+  function sinPlaySeg(bi, then) {
+    const D = window.SIN_DIALOG;
+    if (bi >= D.blocks.length) { if (then) then(); return; }
+    sinEnsureAudios();
+    Object.keys(sinAudios).forEach(k => { const a = sinAudios[k]; try { a.pause(); } catch (e) {} a.onended = null; });
+    const bl = D.blocks[bi];
+    const a = sinAudios[bl.id];
+    sinActiveSeg = bl.id; sinMode = sinSeqOn ? 'all' : 'seg'; sinStopE = -1;
+    try { a.currentTime = 0; } catch (e) {}
+    sinHiAt(bl.id, 0);
+    a.onended = () => { a.onended = null; sinClearHi(); if (then) then(); };
+    const p = a.play(); if (p && p.catch) p.catch(() => {});
+  }
+  function sinReadAll() {
+    sinStop();
+    sinSeqOn = true; sinSeqIdx = 0;
+    const rb = $('#voiceReadAll');
+    if (rb) { rb.classList.add('playing'); rb.textContent = '⏹ 停止连读'; }
+    const next = () => {
+      if (!sinSeqOn) return;
+      if (sinSeqIdx >= window.SIN_DIALOG.blocks.length) { sinStop(); toast('✅ 全段连读完成'); return; }
+      sinPlaySeg(sinSeqIdx, () => { sinSeqIdx++; setTimeout(next, 120); });
+    };
+    next();
+  }
+  function drawSinDialog(g) {
+    const D = window.SIN_DIALOG;
+    if (!D) return false;
+    const av = (spk) => dramaAvatar(g.drama, spk) + '?v=20261121am';
+    let gi = 0, html = '';
+    D.blocks.forEach((bl, bi) => {
+      const isF = bl.spk === 'B';
+      html += '<div class="dialog-bubble ' + (isF ? 'b' : '') + '" data-bi="' + bi + '">'
+        + '<div class="dialog-avatar"><img src="' + av(bl.spk) + '" alt=""></div>'
+        + '<div class="dialog-content">'
+        + '<div class="sin-who">' + (isF ? '女主 · 在熙' : '男主 · 伊俊') + '</div>'
+        + '<div class="sin-lines">';
+      bl.lines.forEach((ln) => {
+        html += '<div class="dline" data-gi="' + gi + '">'
+          + '<div class="dialog-ko">' + esc(ln.ko) + '</div>'
+          + '<div class="dialog-roman">' + esc(ln.ro) + '</div>'
+          + '<div class="dialog-cn">' + esc(ln.cn) + '</div>'
+          + '<span class="sent-spk">🔊</span></div>';
+        gi++;
+      });
+      html += '</div><button class="seg-play" data-bi="' + bi + '">▶ 播放本段原声</button></div></div>';
+    });
+    $('#dramaDialog').innerHTML = html;
+    sinEnsureAudios();
+    $$('#dramaDialog .dline').forEach(el => { el.onclick = () => sinPlayLine(+el.dataset.gi); });
+    $$('#dramaDialog .seg-play').forEach(b => {
+      b.onclick = () => {
+        const bi = +b.dataset.bi, bl = D.blocks[bi];
+        if (sinActiveSeg === bl.id && sinMode === 'seg' && sinAudios[bl.id] && !sinAudios[bl.id].paused) { sinStop(); return; }
+        sinStop();
+        b.classList.add('playing'); b.textContent = '⏸ 播放中';
+        sinPlaySeg(bi, () => {
+          $$('#dramaDialog .seg-play').forEach(x => { x.classList.remove('playing'); x.textContent = '▶ 播放本段原声'; });
+        });
+      };
+    });
+    return true;
+  }
+
   function drawDramaDialog(g) {
     if (!g) return;
+    // 《我的有罪之人》：按说话人分大段 + 连续原声，走专用渲染
+    if (g.drama === SIN_DRAMA && window.SIN_DIALOG) {
+      sinStop();
+      const rb = $('#voiceReadAll');
+      if (rb) { rb._playing = false; rb.textContent = '🔊 全段连读'; rb.classList.remove('playing'); }
+      if (drawSinDialog(g)) return;
+    }
     $('#dramaDialog').innerHTML = `
       <div class="drama-scene-title">💬 ${esc(g.theme)} · <span class="deg-tag deg-${g.level}">${{初:'初级',中:'中级',高:'高级'}[g.level]}</span></div>
       ${g.dialog.map((d, i) => `
         <div class="dialog-bubble ${i % 2 === 1 ? 'b' : ''}">
-          <div class="dialog-avatar"><img src="${dramaAvatar(g.drama, d.speaker)}?v=20261121ak" alt="${esc(d.speaker)}"></div>
+          <div class="dialog-avatar"><img src="${dramaAvatar(g.drama, d.speaker)}?v=20261121am" alt="${esc(d.speaker)}"></div>
           <div class="dialog-content">
             <div class="dialog-ko" data-say="${esc(d.ko)}" data-spk="${esc(d.speaker)}">${esc(d.ko)}</div>
             <div class="dialog-roman">${esc(d.roman)}</div>

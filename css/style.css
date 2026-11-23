@@ -885,3 +885,21 @@ html.is-android .splash-btn{
   -webkit-user-select:none;
   user-select:none;
 }
+
+/* ============================================================
+   《我的有罪之人》整段连续原声对话（按说话人分大段）
+   仅在这部剧的对话容器内生效；样式/字体沿用工作台韩剧台词页
+   ============================================================ */
+.sin-who{font-size:11px;color:var(--purple-deep);font-weight:800;margin-bottom:6px}
+.dialog-bubble.b .sin-who{color:#c26499;text-align:right}
+.sin-lines .dline{position:relative;padding:8px 26px 8px 9px;margin:2px -6px;border-top:1px dashed var(--line);cursor:pointer;border-radius:8px;transition:background .2s}
+.sin-lines .dline:first-child{border-top:none}
+.sin-lines .dline.playing{background:linear-gradient(90deg,#f1e9ff,#fdeaf4);box-shadow:inset 3px 0 0 var(--purple)}
+.dialog-bubble.b .sin-lines .dline.playing{background:linear-gradient(270deg,#f1e9ff,#fdeaf4);box-shadow:inset -3px 0 0 var(--pink)}
+.sin-lines .dline.playing .dialog-ko{color:var(--pink)}
+.seg-play{display:block;margin:9px 0 0 auto;border:none;border-radius:16px;padding:6px 12px;font-size:11px;font-weight:800;background:var(--purple-soft);color:var(--purple-deep);cursor:pointer;font-family:inherit}
+.dialog-bubble.b .seg-play{background:#fdeaf4;color:#c26499}
+.seg-play.playing{background:var(--purple-deep);color:#fff}
+.dialog-bubble.b .seg-play.playing{background:#d67fae;color:#fff}
+.seg-play:active{transform:scale(.96)}
+#voiceReadAll.playing{background:var(--purple-deep);color:#fff}
